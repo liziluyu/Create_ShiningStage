@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "facing=up":    { "model": "simulated:block/laser_pointer/block" },
+    "facing=down":  { "model": "simulated:block/laser_pointer/block", "x": 180 },
+    "facing=north": { "model": "simulated:block/laser_pointer/block", "x": 90 },
+    "facing=south": { "model": "simulated:block/laser_pointer/block", "x": 90, "y": 180 },
+    "facing=west":  { "model": "simulated:block/laser_pointer/block", "x": 90, "y": 270 },
+    "facing=east":  { "model": "simulated:block/laser_pointer/block", "x": 90, "y": 90 }
+  }
+}
