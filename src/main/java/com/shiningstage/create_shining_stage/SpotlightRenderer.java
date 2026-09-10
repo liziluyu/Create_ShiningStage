@@ -19,29 +19,47 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.DirectionalBlock;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 
 public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEntity> {
-    private static final float MAX_RANGE = 16f;
+    static final float MAX_RANGE = 16f;
     /** Divergence of the cone; base half-size = span * HALF_ANGLE_TAN. */
-    private static final float HALF_ANGLE_TAN = 0.6f;
+    static final float HALF_ANGLE_TAN = 0.3f;
 
     private static final RenderType BEAM = RenderType.create(
         "create_shining_stage:spotlight_beam",
         DefaultVertexFormat.POSITION_COLOR,
         VertexFormat.Mode.TRIANGLES,
-        256, false, false,
+        256, false, true,
         RenderType.CompositeState.builder()
             .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
-            .setTransparencyState(RenderStateShard.ADDITIVE_TRANSPARENCY)
+            .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
             .setCullState(RenderStateShard.NO_CULL)
-            .setWriteMaskState(RenderStateShard.COLOR_WRITE)
             .createCompositeState(false));
 
     public SpotlightRenderer(BlockEntityRendererProvider.Context context) {
+    }
+
+    @Override
+    public boolean shouldRenderOffScreen(SpotlightBlockEntity be) {
+        return true;
+    }
+
+    @Override
+    public int getViewDistance() {
+        return 256;
+    }
+
+    @Override
+    public AABB getRenderBoundingBox(SpotlightBlockEntity be) {
+        Vec3i normal = be.getBlockState().getValue(DirectionalBlock.FACING).getNormal();
+        return new AABB(be.getBlockPos())
+            .expandTowards(Vec3.atLowerCornerOf(normal).scale(MAX_RANGE))
+            .inflate(MAX_RANGE * HALF_ANGLE_TAN);
     }
 
     @Override
