@@ -1,4 +1,5 @@
 {
   "block.create_shining_stage.spotlight": "Spotlight",
+  "block.create_shining_stage.spotlight.max_length": "Max Length",
   "itemGroup.create_shining_stage": "Create Shining Stage"
 }

@@ -1,4 +1,5 @@
 {
   "block.create_shining_stage.spotlight": "聚光灯",
+  "block.create_shining_stage.spotlight.max_length": "最大长度",
   "itemGroup.create_shining_stage": "闪耀舞台"
 }

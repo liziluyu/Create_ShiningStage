@@ -10,6 +10,9 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
 
+import dev.ryanhcode.sable.Sable;
+import dev.ryanhcode.sable.util.SableDistUtil;
+
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
@@ -28,15 +31,16 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 
 public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEntity> {
-    static final float MAX_RANGE = 16f;
     /** Divergence of the frustum; bottom half-size = top + span * HALF_ANGLE_TAN. */
     static final float HALF_ANGLE_TAN = 0.3f;
     /** Half-size of the top (emitter) face; matches the laser pointer's 0.48 cross-section. */
     static final float TOP_HALF = 0.24f;
     /** Alpha at the emitter end (most opaque), scaled by the redstone control. */
-    static final float MAX_ALPHA = 0.7f;
+    static final float MAX_ALPHA = 0.6f;
     /** Alpha at the far end (most transparent), scaled by the redstone control. */
     static final float MIN_ALPHA = 0.3f;
+    /** Length of the transparent fade-out at the beam tip (matches the laser pointer). */
+    static final float END_FADE = 0.5f;
 
     private static final RenderType BEAM = RenderType.create(
         "create_shining_stage:spotlight_beam",
@@ -66,8 +70,8 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
     public AABB getRenderBoundingBox(SpotlightBlockEntity be) {
         Vec3i normal = be.getBlockState().getValue(DirectionalBlock.FACING).getNormal();
         return new AABB(be.getBlockPos())
-            .expandTowards(Vec3.atLowerCornerOf(normal).scale(MAX_RANGE))
-            .inflate(TOP_HALF + MAX_RANGE * HALF_ANGLE_TAN);
+            .expandTowards(Vec3.atLowerCornerOf(normal).scale(SpotlightBlockEntity.MAX_RANGE))
+            .inflate(TOP_HALF + SpotlightBlockEntity.MAX_RANGE * HALF_ANGLE_TAN);
     }
 
     @Override
@@ -91,14 +95,18 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
         Vec3i normal = dir.getNormal();
         Vec3 center = Vec3.atCenterOf(pos);
         Vec3 start = center.add(Vec3.atLowerCornerOf(normal).scale(0.5));
-        Vec3 end = start.add(Vec3.atLowerCornerOf(normal).scale(MAX_RANGE));
+        Vec3 end = start.add(Vec3.atLowerCornerOf(normal).scale(be.getRange()));
         BlockHitResult hit = level.clip(new ClipContext(
             start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
 
+        // A hit in another physical space (ship/sub-level) sits at far-away coordinates, so a
+        // vanilla distanceTo explodes and the beam looks infinite. Sable maps both points into a
+        // common space for the true distance, exactly like the laser pointer does.
         double dist = hit.getType() == HitResult.Type.MISS
             ? end.distanceTo(center)
-            : hit.getLocation().distanceTo(center);
-        float beamLength = (float) (dist - 0.05);
+            : Math.sqrt(Sable.HELPER.distanceSquaredWithSubLevels(
+                SableDistUtil.getClientLevel(), center, hit.getLocation()));
+        float beamLength = Math.min((float) (dist - 0.05), be.getRange());
         if (beamLength <= 0.1f) {
             return;
         }
@@ -110,6 +118,9 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
 
         float span = beamLength - 0.5f;
         float bottomHalf = TOP_HALF + span * HALF_ANGLE_TAN * (1f - control);
+        // Fade the last END_FADE blocks out to fully transparent, like the laser pointer's tip.
+        float fadeStart = Math.max(0f, span - END_FADE);
+        float midHalf = TOP_HALF + fadeStart * HALF_ANGLE_TAN * (1f - control);
 
         ms.pushPose();
         ms.translate(0.5, 0.5, 0.5);
@@ -119,6 +130,7 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
         ms.translate(0, 0, 0.5); // top face sits at the block face
 
         float[][] top = { {-TOP_HALF, -TOP_HALF}, {TOP_HALF, -TOP_HALF}, {TOP_HALF, TOP_HALF}, {-TOP_HALF, TOP_HALF} };
+        float[][] mid = { {-midHalf, -midHalf}, {midHalf, -midHalf}, {midHalf, midHalf}, {-midHalf, midHalf} };
         float[][] bottom = { {-bottomHalf, -bottomHalf}, {bottomHalf, -bottomHalf}, {bottomHalf, bottomHalf}, {-bottomHalf, bottomHalf} };
 
         VertexConsumer vc = buffer.getBuffer(BEAM);
@@ -127,10 +139,16 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
         float bottomAlpha = control * MIN_ALPHA;
         for (int i = 0; i < 4; i++) {
             int j = (i + 1) % 4;
+            // Main segment: emitter -> fade start, with the redstone-driven alpha gradient.
             vertex(vc, mat, top[i][0], top[i][1], 0, r, g, b, topAlpha);
             vertex(vc, mat, top[j][0], top[j][1], 0, r, g, b, topAlpha);
-            vertex(vc, mat, bottom[j][0], bottom[j][1], span, r, g, b, bottomAlpha);
-            vertex(vc, mat, bottom[i][0], bottom[i][1], span, r, g, b, bottomAlpha);
+            vertex(vc, mat, mid[j][0], mid[j][1], fadeStart, r, g, b, bottomAlpha);
+            vertex(vc, mat, mid[i][0], mid[i][1], fadeStart, r, g, b, bottomAlpha);
+            // Taper segment: fade start -> tip, fading out to transparent.
+            vertex(vc, mat, mid[i][0], mid[i][1], fadeStart, r, g, b, bottomAlpha);
+            vertex(vc, mat, mid[j][0], mid[j][1], fadeStart, r, g, b, bottomAlpha);
+            vertex(vc, mat, bottom[j][0], bottom[j][1], span, r, g, b, 0f);
+            vertex(vc, mat, bottom[i][0], bottom[i][1], span, r, g, b, 0f);
         }
         ms.popPose();
     }

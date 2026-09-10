@@ -1,6 +1,7 @@
 package com.shiningstage.create_shining_stage;
 
 import com.mojang.serialization.MapCodec;
+import com.simibubi.create.foundation.block.IBE;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -16,13 +17,12 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.DirectionalBlock;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
 
-public class SpotlightBlock extends DirectionalBlock implements EntityBlock {
+public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlockEntity> {
     public static final MapCodec<SpotlightBlock> CODEC = simpleCodec(SpotlightBlock::new);
 
     public SpotlightBlock(Properties properties) {
@@ -46,8 +46,13 @@ public class SpotlightBlock extends DirectionalBlock implements EntityBlock {
     }
 
     @Override
-    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new SpotlightBlockEntity(pos, state);
+    public Class<SpotlightBlockEntity> getBlockEntityClass() {
+        return SpotlightBlockEntity.class;
+    }
+
+    @Override
+    public BlockEntityType<? extends SpotlightBlockEntity> getBlockEntityType() {
+        return ModBlockEntityTypes.SPOTLIGHT.get();
     }
 
     @Override
