@@ -33,6 +33,10 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
     static final float HALF_ANGLE_TAN = 0.3f;
     /** Half-size of the top (emitter) face; matches the laser pointer's 0.48 cross-section. */
     static final float TOP_HALF = 0.24f;
+    /** Alpha at the emitter end (most opaque), scaled by the redstone control. */
+    static final float MAX_ALPHA = 0.7f;
+    /** Alpha at the far end (most transparent), scaled by the redstone control. */
+    static final float MIN_ALPHA = 0.3f;
 
     private static final RenderType BEAM = RenderType.create(
         "create_shining_stage:spotlight_beam",
@@ -42,7 +46,7 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
         RenderType.CompositeState.builder()
             .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
             .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-            .setCullState(RenderStateShard.NO_CULL)
+            .setCullState(RenderStateShard.CULL)
             .createCompositeState(false));
 
     public SpotlightRenderer(BlockEntityRendererProvider.Context context) {
@@ -119,12 +123,14 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
 
         VertexConsumer vc = buffer.getBuffer(BEAM);
         Matrix4f mat = ms.last().pose();
+        float topAlpha = control * MAX_ALPHA;
+        float bottomAlpha = control * MIN_ALPHA;
         for (int i = 0; i < 4; i++) {
             int j = (i + 1) % 4;
-            vertex(vc, mat, top[i][0], top[i][1], 0, r, g, b, control);
-            vertex(vc, mat, top[j][0], top[j][1], 0, r, g, b, control);
-            vertex(vc, mat, bottom[j][0], bottom[j][1], span, r, g, b, 0f);
-            vertex(vc, mat, bottom[i][0], bottom[i][1], span, r, g, b, 0f);
+            vertex(vc, mat, top[i][0], top[i][1], 0, r, g, b, topAlpha);
+            vertex(vc, mat, top[j][0], top[j][1], 0, r, g, b, topAlpha);
+            vertex(vc, mat, bottom[j][0], bottom[j][1], span, r, g, b, bottomAlpha);
+            vertex(vc, mat, bottom[i][0], bottom[i][1], span, r, g, b, bottomAlpha);
         }
         ms.popPose();
     }
