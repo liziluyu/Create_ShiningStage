@@ -19,6 +19,7 @@ public class CreateShiningStage {
         ModBlocks.ITEMS.register(modEventBus);
         ModBlockEntityTypes.BLOCK_ENTITIES.register(modEventBus);
         ModCreativeTabs.CREATIVE_TABS.register(modEventBus);
+        ModDataComponents.COMPONENTS.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
