@@ -234,8 +234,8 @@ public class MicrophoneBlockEntity extends SmartBlockEntity {
     }
 
     @Override
-    public void setRemoved() {
-        super.setRemoved();
+    public void invalidate() {
+        super.invalidate();
         if (level != null && !level.isClientSide) {
             SoundRelayHandler.unregister(level.dimension(), worldPosition);
         }
