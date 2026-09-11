@@ -39,8 +39,8 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
     static final float MAX_ALPHA = 0.5f;
     /** Alpha at the far end (most transparent), scaled by the redstone control. */
     static final float MIN_ALPHA = 0.3f;
-    /** Length of the transparent fade-out at the beam tip (matches the laser pointer). */
-    static final float END_FADE = 0.5f;
+    /** Length of the transparent fade-out at the beam tip, in blocks (laser pointer uses 0.5; we use a longer, softer fade). */
+    static final float END_FADE = 1.5f;
 
     private static final RenderType BEAM = RenderType.create(
         "create_shining_stage:spotlight_beam",
