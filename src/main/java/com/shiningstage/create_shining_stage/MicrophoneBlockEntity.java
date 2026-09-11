@@ -1,5 +1,6 @@
 package com.shiningstage.create_shining_stage;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -12,6 +13,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class MicrophoneBlockEntity extends SmartBlockEntity {
@@ -54,7 +56,7 @@ public class MicrophoneBlockEntity extends SmartBlockEntity {
     }
 
     public Set<BlockPos> getBoundSpeakers() {
-        return boundSpeakers;
+        return Collections.unmodifiableSet(boundSpeakers);
     }
 
     public void addSpeaker(BlockPos pos) {
@@ -68,7 +70,7 @@ public class MicrophoneBlockEntity extends SmartBlockEntity {
     }
 
     /** Push a captured sound to every bound speaker. Stale positions (unloaded/broken speakers) skip silently. */
-    public void relay(net.minecraft.sounds.SoundEvent sound, float volume, float pitch) {
+    public void relay(SoundEvent sound, float volume, float pitch) {
         if (level == null || level.isClientSide) {
             return;
         }
@@ -85,6 +87,9 @@ public class MicrophoneBlockEntity extends SmartBlockEntity {
         super.onLoad();
         if (level != null && !level.isClientSide) {
             SoundRelayHandler.register(level.dimension(), worldPosition);
+            // neighborChanged never fires for the placed block itself, and the persisted flag may be stale
+            // after a chunk reload, so recompute the power state here.
+            setRedstoneOn(level.getBestNeighborSignal(worldPosition) > 0);
         }
     }
 

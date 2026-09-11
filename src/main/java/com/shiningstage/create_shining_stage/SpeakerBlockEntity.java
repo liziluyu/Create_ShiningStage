@@ -24,6 +24,7 @@ public class SpeakerBlockEntity extends SmartBlockEntity {
 
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+        // No behaviours: speakers have no adjustable values; binding state lives in plain fields.
     }
 
     public GlobalPos getBoundMic() {
@@ -48,11 +49,13 @@ public class SpeakerBlockEntity extends SmartBlockEntity {
         if (level == null || level.isClientSide) {
             return;
         }
+        // Server-thread only: save/restore keeps the guard correct even if a replay ever nests.
+        boolean prev = SoundRelayHandler.relayGuard;
         SoundRelayHandler.relayGuard = true;
         try {
             level.playSound(null, worldPosition, sound, SoundSource.BLOCKS, volume, pitch);
         } finally {
-            SoundRelayHandler.relayGuard = false;
+            SoundRelayHandler.relayGuard = prev;
         }
     }
 
@@ -60,7 +63,8 @@ public class SpeakerBlockEntity extends SmartBlockEntity {
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.write(tag, registries, clientPacket);
         if (boundMic != null) {
-            tag.put("BoundMic", GlobalPos.CODEC.encodeStart(NbtOps.INSTANCE, boundMic).getOrThrow());
+            GlobalPos.CODEC.encodeStart(NbtOps.INSTANCE, boundMic).result()
+                .ifPresent(encoded -> tag.put("BoundMic", encoded));
         }
     }
 

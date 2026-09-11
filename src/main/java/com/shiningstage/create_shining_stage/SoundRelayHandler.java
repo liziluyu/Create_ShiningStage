@@ -1,5 +1,6 @@
 package com.shiningstage.create_shining_stage;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,7 +42,8 @@ public class SoundRelayHandler {
 
     /** Live microphone positions in a dimension, or null when none. */
     public static Set<BlockPos> microphonesIn(ResourceKey<Level> dimension) {
-        return MICROPHONES.get(dimension);
+        Set<BlockPos> set = MICROPHONES.get(dimension);
+        return set == null ? null : Collections.unmodifiableSet(set);
     }
 
     public static void onAtPosition(PlayLevelSoundEvent.AtPosition event) {
