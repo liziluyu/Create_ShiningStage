@@ -18,6 +18,9 @@ public class ModCreativeTabs {
             .title(Component.translatable("itemGroup.create_shining_stage"))
             .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
             .icon(() -> new ItemStack(ModBlocks.SPOTLIGHT.get()))
-            .displayItems((params, output) -> output.accept(new ItemStack(ModBlocks.SPOTLIGHT_ITEM.get())))
+            .displayItems((params, output) -> {
+                output.accept(new ItemStack(ModBlocks.SPOTLIGHT_ITEM.get()));
+                output.accept(new ItemStack(ModBlocks.MICROPHONE_ITEM.get()));
+            })
             .build());
 }
