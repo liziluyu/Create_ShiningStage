@@ -50,7 +50,9 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
         RenderType.CompositeState.builder()
             .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
             .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-            .setCullState(RenderStateShard.NO_CULL)
+            .setCullState(RenderStateShard.CULL)
+            // Never write depth: crossing translucent beams would depth-cull each other.
+            .setWriteMaskState(RenderStateShard.COLOR_WRITE)
             .createCompositeState(false));
 
     public SpotlightRenderer(BlockEntityRendererProvider.Context context) {
