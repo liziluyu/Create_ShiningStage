@@ -1,5 +1,11 @@
 {
   "block.create_shining_stage.spotlight": "聚光灯",
   "block.create_shining_stage.spotlight.max_length": "最大长度",
+  "block.create_shining_stage.microphone": "麦克风",
+  "block.create_shining_stage.microphone.range": "监听范围",
+  "block.create_shining_stage.speaker": "音响",
+  "block.create_shining_stage.speaker.bound": "已绑定到麦克风",
+  "block.create_shining_stage.speaker.bind_failed_dimension": "绑定失败:麦克风在其他维度",
+  "block.create_shining_stage.speaker.bind_failed_unloaded": "绑定失败:麦克风所在区块未加载",
   "itemGroup.create_shining_stage": "闪耀舞台"
 }

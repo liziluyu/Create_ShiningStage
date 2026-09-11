@@ -1,5 +1,11 @@
 {
   "block.create_shining_stage.spotlight": "Spotlight",
   "block.create_shining_stage.spotlight.max_length": "Max Length",
+  "block.create_shining_stage.microphone": "Microphone",
+  "block.create_shining_stage.microphone.range": "Listening Range",
+  "block.create_shining_stage.speaker": "Speaker",
+  "block.create_shining_stage.speaker.bound": "Speaker bound to microphone",
+  "block.create_shining_stage.speaker.bind_failed_dimension": "Binding failed: microphone is in another dimension",
+  "block.create_shining_stage.speaker.bind_failed_unloaded": "Binding failed: microphone is not loaded",
   "itemGroup.create_shining_stage": "Create Shining Stage"
 }
