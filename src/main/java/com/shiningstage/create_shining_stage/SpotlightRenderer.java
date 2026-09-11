@@ -36,7 +36,7 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
     /** Half-size of the top (emitter) face; matches the laser pointer's 0.48 cross-section. */
     static final float TOP_HALF = 0.24f;
     /** Alpha at the emitter end (most opaque), scaled by the redstone control. */
-    static final float MAX_ALPHA = 0.6f;
+    static final float MAX_ALPHA = 0.5f;
     /** Alpha at the far end (most transparent), scaled by the redstone control. */
     static final float MIN_ALPHA = 0.3f;
     /** Length of the transparent fade-out at the beam tip (matches the laser pointer). */
@@ -50,7 +50,7 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
         RenderType.CompositeState.builder()
             .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
             .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-            .setCullState(RenderStateShard.CULL)
+            .setCullState(RenderStateShard.NO_CULL)
             .createCompositeState(false));
 
     public SpotlightRenderer(BlockEntityRendererProvider.Context context) {
