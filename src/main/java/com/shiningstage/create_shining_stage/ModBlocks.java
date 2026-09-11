@@ -31,4 +31,12 @@ public class ModBlocks {
 
     public static final Supplier<BlockItem> MICROPHONE_ITEM =
         ITEMS.register("microphone", () -> new BlockItem(MICROPHONE.get(), new Item.Properties()));
+
+    public static final Supplier<SpeakerBlock> SPEAKER =
+        BLOCKS.register("speaker", () -> new SpeakerBlock(BlockBehaviour.Properties.of()
+            .strength(3.5f)
+            .sound(SoundType.WOOD)));
+
+    public static final Supplier<BlockItem> SPEAKER_ITEM =
+        ITEMS.register("speaker", () -> new BlockItem(SPEAKER.get(), new Item.Properties()));
 }

@@ -17,4 +17,8 @@ public class ModBlockEntityTypes {
     public static final Supplier<BlockEntityType<MicrophoneBlockEntity>> MICROPHONE =
         BLOCK_ENTITIES.register("microphone",
             () -> BlockEntityType.Builder.of(MicrophoneBlockEntity::new, ModBlocks.MICROPHONE.get()).build(null));
+
+    public static final Supplier<BlockEntityType<SpeakerBlockEntity>> SPEAKER =
+        BLOCK_ENTITIES.register("speaker",
+            () -> BlockEntityType.Builder.of(SpeakerBlockEntity::new, ModBlocks.SPEAKER.get()).build(null));
 }

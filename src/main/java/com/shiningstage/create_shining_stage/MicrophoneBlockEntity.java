@@ -67,6 +67,18 @@ public class MicrophoneBlockEntity extends SmartBlockEntity {
         notifyUpdate();
     }
 
+    /** Push a captured sound to every bound speaker. Stale positions (unloaded/broken speakers) skip silently. */
+    public void relay(net.minecraft.sounds.SoundEvent sound, float volume, float pitch) {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        for (BlockPos speakerPos : List.copyOf(boundSpeakers)) {
+            if (level.getBlockEntity(speakerPos) instanceof SpeakerBlockEntity speaker) {
+                speaker.playRelayed(sound, volume, pitch);
+            }
+        }
+    }
+
     // Keep the loaded-microphone registry in sync with chunk load/unload.
     @Override
     public void onLoad() {

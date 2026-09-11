@@ -21,6 +21,7 @@ public class ModCreativeTabs {
             .displayItems((params, output) -> {
                 output.accept(new ItemStack(ModBlocks.SPOTLIGHT_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.MICROPHONE_ITEM.get()));
+                output.accept(new ItemStack(ModBlocks.SPEAKER_ITEM.get()));
             })
             .build());
 }
