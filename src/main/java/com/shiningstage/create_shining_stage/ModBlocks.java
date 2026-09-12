@@ -50,8 +50,8 @@ public class ModBlocks {
     public static final Supplier<BlockItem> SPEAKER_ITEM =
         ITEMS.register("speaker", () -> new BlockItem(SPEAKER.get(), new Item.Properties()));
 
-    public static final Supplier<Block> TRUSS =
-        BLOCKS.register("truss", () -> new Block(BlockBehaviour.Properties.of()
+    public static final Supplier<TrussBlock> TRUSS =
+        BLOCKS.register("truss", () -> new TrussBlock(BlockBehaviour.Properties.of()
             .strength(3.5f)
             .sound(SoundType.METAL)
             .noOcclusion()));

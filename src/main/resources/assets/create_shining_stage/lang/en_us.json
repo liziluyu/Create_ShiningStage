@@ -9,5 +9,7 @@
   "block.create_shining_stage.speaker.bind_failed_dimension": "Binding failed: microphone is in another dimension",
   "block.create_shining_stage.speaker.bind_failed_unloaded": "Binding failed: microphone is not loaded",
   "block.create_shining_stage.truss": "Truss",
+  "block.create_shining_stage.truss.tooltip.1": "The metal frame holding up the stage!",
+  "block.create_shining_stage.truss.tooltip.2": "Can be charged by redstone",
   "itemGroup.create_shining_stage": "Create Shining Stage"
 }

@@ -9,5 +9,7 @@
   "block.create_shining_stage.speaker.bind_failed_dimension": "绑定失败:麦克风在其他维度",
   "block.create_shining_stage.speaker.bind_failed_unloaded": "绑定失败:麦克风所在区块未加载",
   "block.create_shining_stage.truss": "桁架",
+  "block.create_shining_stage.truss.tooltip.1": "支撑舞台的金属结构！",
+  "block.create_shining_stage.truss.tooltip.2": "可以被红石充能",
   "itemGroup.create_shining_stage": "闪耀舞台"
 }
