@@ -49,4 +49,13 @@ public class ModBlocks {
 
     public static final Supplier<BlockItem> SPEAKER_ITEM =
         ITEMS.register("speaker", () -> new BlockItem(SPEAKER.get(), new Item.Properties()));
+
+    public static final Supplier<Block> TRUSS =
+        BLOCKS.register("truss", () -> new Block(BlockBehaviour.Properties.of()
+            .strength(3.5f)
+            .sound(SoundType.METAL)
+            .noOcclusion()));
+
+    public static final Supplier<BlockItem> TRUSS_ITEM =
+        ITEMS.register("truss", () -> new BlockItem(TRUSS.get(), new Item.Properties()));
 }

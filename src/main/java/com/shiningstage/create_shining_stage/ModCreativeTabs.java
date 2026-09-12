@@ -23,6 +23,7 @@ public class ModCreativeTabs {
                 output.accept(new ItemStack(ModBlocks.TRIPOD_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.MICROPHONE_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.SPEAKER_ITEM.get()));
+                output.accept(new ItemStack(ModBlocks.TRUSS_ITEM.get()));
             })
             .build());
 }
