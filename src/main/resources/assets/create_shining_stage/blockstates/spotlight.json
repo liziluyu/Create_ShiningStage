@@ -1,10 +1,22 @@
 {
   "variants": {
-    "facing=up":    { "model": "simulated:block/laser_pointer/block" },
-    "facing=down":  { "model": "simulated:block/laser_pointer/block", "x": 180 },
-    "facing=north": { "model": "simulated:block/laser_pointer/block", "x": 90 },
-    "facing=south": { "model": "simulated:block/laser_pointer/block", "x": 90, "y": 180 },
-    "facing=west":  { "model": "simulated:block/laser_pointer/block", "x": 90, "y": 270 },
-    "facing=east":  { "model": "simulated:block/laser_pointer/block", "x": 90, "y": 90 }
+    "facing=up,mount=tripod": { "model": "create_shining_stage:block/spotlight_up" },
+    "facing=up,mount=ground": { "model": "create_shining_stage:block/spotlight_up" },
+    "facing=up,mount=hang": { "model": "create_shining_stage:block/spotlight_up" },
+    "facing=down,mount=tripod": { "model": "create_shining_stage:block/spotlight_down" },
+    "facing=down,mount=ground": { "model": "create_shining_stage:block/spotlight_down" },
+    "facing=down,mount=hang": { "model": "create_shining_stage:block/spotlight_down" },
+    "facing=north,mount=tripod": { "model": "create_shining_stage:block/spotlight_tripod" },
+    "facing=east,mount=tripod": { "model": "create_shining_stage:block/spotlight_tripod", "y": 90 },
+    "facing=south,mount=tripod": { "model": "create_shining_stage:block/spotlight_tripod", "y": 180 },
+    "facing=west,mount=tripod": { "model": "create_shining_stage:block/spotlight_tripod", "y": 270 },
+    "facing=north,mount=ground": { "model": "create_shining_stage:block/spotlight_ground" },
+    "facing=east,mount=ground": { "model": "create_shining_stage:block/spotlight_ground", "y": 90 },
+    "facing=south,mount=ground": { "model": "create_shining_stage:block/spotlight_ground", "y": 180 },
+    "facing=west,mount=ground": { "model": "create_shining_stage:block/spotlight_ground", "y": 270 },
+    "facing=north,mount=hang": { "model": "create_shining_stage:block/spotlight_hang" },
+    "facing=east,mount=hang": { "model": "create_shining_stage:block/spotlight_hang", "y": 90 },
+    "facing=south,mount=hang": { "model": "create_shining_stage:block/spotlight_hang", "y": 180 },
+    "facing=west,mount=hang": { "model": "create_shining_stage:block/spotlight_hang", "y": 270 }
   }
 }

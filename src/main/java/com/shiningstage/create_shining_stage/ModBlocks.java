@@ -19,10 +19,20 @@ public class ModBlocks {
     public static final Supplier<SpotlightBlock> SPOTLIGHT =
         BLOCKS.register("spotlight", () -> new SpotlightBlock(BlockBehaviour.Properties.of()
             .strength(3.5f)
-            .sound(SoundType.METAL)));
+            .sound(SoundType.METAL)
+            .noOcclusion()));
 
     public static final Supplier<BlockItem> SPOTLIGHT_ITEM =
         ITEMS.register("spotlight", () -> new BlockItem(SPOTLIGHT.get(), new Item.Properties()));
+
+    public static final Supplier<TripodBlock> TRIPOD =
+        BLOCKS.register("tripod", () -> new TripodBlock(BlockBehaviour.Properties.of()
+            .strength(3.5f)
+            .sound(SoundType.METAL)
+            .noOcclusion()));
+
+    public static final Supplier<BlockItem> TRIPOD_ITEM =
+        ITEMS.register("tripod", () -> new BlockItem(TRIPOD.get(), new Item.Properties()));
 
     public static final Supplier<MicrophoneBlock> MICROPHONE =
         BLOCKS.register("microphone", () -> new MicrophoneBlock(BlockBehaviour.Properties.of()

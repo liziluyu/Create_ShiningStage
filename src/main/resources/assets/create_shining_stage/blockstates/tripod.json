@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "part=bottom": { "model": "create_shining_stage:block/tripod_bottom" },
+    "part=pole": { "model": "create_shining_stage:block/tripod_pole" }
+  }
+}

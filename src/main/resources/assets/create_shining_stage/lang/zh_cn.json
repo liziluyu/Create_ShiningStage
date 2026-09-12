@@ -1,6 +1,7 @@
 {
   "block.create_shining_stage.spotlight": "聚光灯",
   "block.create_shining_stage.spotlight.max_length": "最大长度",
+  "block.create_shining_stage.tripod": "三脚架",
   "block.create_shining_stage.microphone": "麦克风",
   "block.create_shining_stage.microphone.range": "监听范围",
   "block.create_shining_stage.speaker": "音响",
