@@ -44,6 +44,17 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
     private static final VoxelShape SHAPE_EAST = Block.box(0, 2.95, 2.95, 14, 13.05, 13.05);
     private static final VoxelShape SHAPE_SOUTH = Block.box(2.95, 2.95, 0, 13.05, 13.05, 14);
     private static final VoxelShape SHAPE_WEST = Block.box(2, 2.95, 2.95, 16, 13.05, 13.05);
+    /**
+     * Support shapes for attachment checks only (SupportType, used by levers/buttons/torches):
+     * a full slab covering the tail half, so the face opposite the beam reads as sturdy.
+     * Never used for rendering or occlusion, unlike getShape/getOcclusionShape.
+     */
+    private static final VoxelShape SUPPORT_TAIL_NORTH = Block.box(0, 0, 0, 16, 16, 8);
+    private static final VoxelShape SUPPORT_TAIL_SOUTH = Block.box(0, 0, 8, 16, 16, 16);
+    private static final VoxelShape SUPPORT_TAIL_WEST = Block.box(0, 0, 0, 8, 16, 16);
+    private static final VoxelShape SUPPORT_TAIL_EAST = Block.box(8, 0, 0, 16, 16, 16);
+    private static final VoxelShape SUPPORT_TAIL_DOWN = Block.box(0, 0, 0, 16, 8, 16);
+    private static final VoxelShape SUPPORT_TAIL_UP = Block.box(0, 8, 0, 16, 16, 16);
 
     public SpotlightBlock(Properties properties) {
         super(properties);
@@ -113,6 +124,18 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
             case EAST -> SHAPE_EAST;
             case SOUTH -> SHAPE_SOUTH;
             case WEST -> SHAPE_WEST;
+        };
+    }
+    @Override
+    protected VoxelShape getBlockSupportShape(BlockState state, BlockGetter level, BlockPos pos) {
+        // Only the tail face is sturdy; everything else stays non-attachable.
+        return switch (state.getValue(FACING)) {
+            case NORTH -> SUPPORT_TAIL_SOUTH;
+            case SOUTH -> SUPPORT_TAIL_NORTH;
+            case EAST -> SUPPORT_TAIL_WEST;
+            case WEST -> SUPPORT_TAIL_EAST;
+            case UP -> SUPPORT_TAIL_DOWN;
+            case DOWN -> SUPPORT_TAIL_UP;
         };
     }
 

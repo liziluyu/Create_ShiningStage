@@ -10,6 +10,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class SpotlightBlockEntity extends SmartBlockEntity {
@@ -32,8 +34,14 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
         range = new ScrollValueBehaviour(
             Component.translatable("block.create_shining_stage.spotlight.max_length"),
-            this, new SpotlightRangeValueBoxTransform())
-            .between(MIN_RANGE, MAX_RANGE);
+            this, new SpotlightRangeValueBoxTransform()) {
+            // Holding a placeable block means "attach it to the tail", not "adjust the range":
+            // let the click fall through to block placement instead of opening the value box.
+            @Override
+            public boolean bypassesInput(ItemStack mainhandItem) {
+                return mainhandItem.getItem() instanceof BlockItem;
+            }
+        }.between(MIN_RANGE, MAX_RANGE);
         range.value = DEFAULT_RANGE; // start at a mid value, not max
         behaviours.add(range);
     }
