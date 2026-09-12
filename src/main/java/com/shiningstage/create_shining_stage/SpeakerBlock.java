@@ -4,28 +4,46 @@ import com.mojang.serialization.MapCodec;
 import com.simibubi.create.foundation.block.IBE;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
 
 import org.jetbrains.annotations.Nullable;
 
-public class SpeakerBlock extends Block implements IBE<SpeakerBlockEntity> {
+public class SpeakerBlock extends HorizontalDirectionalBlock implements IBE<SpeakerBlockEntity> {
     public static final MapCodec<SpeakerBlock> CODEC = simpleCodec(SpeakerBlock::new);
 
     public SpeakerBlock(Properties properties) {
         super(properties);
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
 
     @Override
-    protected MapCodec<? extends Block> codec() {
+    protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
         return CODEC;
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(FACING);
+    }
+
+    // Grill faces the placer, the vanilla horizontal-block convention (ChestBlock/FurnaceBlock).
+    // HorizontalDirectionalBlock supplies rotate/mirror, which is what lets structure blocks and the
+    // Create wrench turn the speaker in 90-degree steps.
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
     }
 
     @Override

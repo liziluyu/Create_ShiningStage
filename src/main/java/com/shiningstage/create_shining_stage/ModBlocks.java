@@ -45,7 +45,8 @@ public class ModBlocks {
     public static final Supplier<SpeakerBlock> SPEAKER =
         BLOCKS.register("speaker", () -> new SpeakerBlock(BlockBehaviour.Properties.of()
             .strength(3.5f)
-            .sound(SoundType.WOOD)));
+            .sound(SoundType.WOOD)
+            .noOcclusion()));
 
     public static final Supplier<BlockItem> SPEAKER_ITEM =
         ITEMS.register("speaker", () -> new BlockItem(SPEAKER.get(), new Item.Properties()));

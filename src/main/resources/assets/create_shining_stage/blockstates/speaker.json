@@ -1,5 +1,8 @@
 {
   "variants": {
-    "": { "model": "minecraft:block/jukebox" }
+    "facing=north": { "model": "create_shining_stage:block/speaker" },
+    "facing=east":  { "model": "create_shining_stage:block/speaker", "y": 90 },
+    "facing=south": { "model": "create_shining_stage:block/speaker", "y": 180 },
+    "facing=west":  { "model": "create_shining_stage:block/speaker", "y": 270 }
   }
 }
