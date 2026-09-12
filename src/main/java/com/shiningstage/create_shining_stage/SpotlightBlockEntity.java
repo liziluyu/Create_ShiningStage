@@ -13,8 +13,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class SpotlightBlockEntity extends SmartBlockEntity {
-    /** Default purple, matching Simulated's MEDIA_OURPLE (RGB 188,118,255). */
-    public static final int DEFAULT_COLOR = 0xBC76FF;
+    /** Default warm white (#f8f7d2); dye right-click overrides, amethyst resets to this. */
+    public static final int DEFAULT_COLOR = 0xF8F7D2;
     /** Adjustable beam length bounds, in blocks. */
     public static final int MIN_RANGE = 2;
     public static final int MAX_RANGE = 32;
