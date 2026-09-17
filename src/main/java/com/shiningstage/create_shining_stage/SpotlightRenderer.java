@@ -1,6 +1,7 @@
 package com.shiningstage.create_shining_stage;
 
 import java.awt.Color;
+import java.util.List;
 
 import org.joml.Matrix4f;
 
@@ -9,6 +10,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.Contraption;
+import com.simibubi.create.foundation.virtualWorld.VirtualRenderWorld;
 
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.util.SableDistUtil;
@@ -26,6 +30,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.DirectionalBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -52,6 +57,13 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
      */
     private static final ResourceLocation BEAM_PROGRAM =
         ResourceLocation.fromNamespaceAndPath(CreateShiningStage.MOD_ID, "spotlight_beam/spotlight_beam");
+    /**
+     * Signal level the beam is pinned to inside a Create contraption. A contraption's block
+     * entities are rebuilt in the contraption's own world, which is cut off from the redstone of
+     * the level the contraption travels through, so a mounted spotlight would otherwise go dark.
+     * This keeps it glowing at a fixed dim level instead.
+     */
+    static final int CONTRAPTION_SIGNAL = 4;
 
     /**
      * The beam, drawn by this mod's own shader program ({@link #BEAM_PROGRAM}).
@@ -114,7 +126,7 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
 
         // Redstone can't be read per-face; a single signal drives both convergence and
         // opacity together. 0 = widest frustum + transparent, 15 = prism + full opacity.
-        int signal = level.getBestNeighborSignal(pos);
+        int signal = isInContraption(be) ? CONTRAPTION_SIGNAL : level.getBestNeighborSignal(pos);
         float control = signal / 15f;
         if (control <= 0f) {
             return;
@@ -180,6 +192,91 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
             vertex(vc, mat, bottom[i][0], bottom[i][1], span, sideAlpha, 0f, r, g, b);
         }
         ms.popPose();
+    }
+
+    /**
+     * True while this spotlight is part of a Create contraption rather than the static world.
+     * A contraption's block entities are rendered against a {@link VirtualRenderWorld} built by
+     * {@code ClientContraption}, and are rebuilt inside the contraption's own world, which is cut
+     * off from the redstone of the level the contraption travels through. Create instantiates
+     * that world for contraptions only, so this never matches a static block.
+     */
+    private static boolean isInContraption(SpotlightBlockEntity be) {
+        return be.getLevel() instanceof VirtualRenderWorld;
+    }
+
+    /**
+     * World-space culling box of a contraption, widened to cover the beams of any spotlights it
+     * carries. Used by {@link EntityCullingMixin}: without it a beam leaves the view together with
+     * the hull, since Create renders a contraption's block entities only while the entity passes
+     * culling.
+     *
+     * <p>The spotlight positions and facings come from {@link SpotlightBeams}, captured once when the
+     * contraption's block data was read — a contraption's blocks and their facings never change at
+     * runtime, so this runs in constant time per query (an empty list, the common case, exits
+     * immediately). Beam <em>lengths</em> do change, so each one is read from the live client block
+     * entity, falling back to the length captured at read time when it is not available.
+     */
+    public static AABB contraptionCullingBox(AbstractContraptionEntity entity, AABB fallback) {
+        Contraption contraption = entity.getContraption();
+        if (contraption == null) {
+            return fallback;
+        }
+
+        List<SpotlightBeams.Beam> beams = ((SpotlightBeams) contraption).createShiningStage$spotlightBeams();
+        if (beams.isEmpty()) {
+            return fallback;
+        }
+
+        AABB box = fallback;
+        for (SpotlightBeams.Beam beam : beams) {
+            Vec3i normal = beam.facing().getNormal();
+            int range = beamRange(contraption, beam);
+
+            Vec3 beamStart = Vec3.atCenterOf(beam.localPos()).add(Vec3.atLowerCornerOf(normal).scale(0.5));
+            Vec3 beamEnd = beamStart.add(Vec3.atLowerCornerOf(normal).scale(range));
+            // Hull of the drawn frustum: the emitter box plus the tip box, which is wider by the
+            // beam's divergence over its length (widest when the redstone control is 0).
+            AABB local = new AABB(beam.localPos())
+                .inflate(TOP_HALF)
+                .minmax(new AABB(beamEnd, beamEnd).inflate(TOP_HALF + (range - 0.5f) * HALF_ANGLE_TAN));
+
+            box = box.minmax(worldBounds(local, entity));
+        }
+        return box;
+    }
+
+    /** Live beam length of a contraption spotlight, falling back to the value captured on read. */
+    private static int beamRange(Contraption contraption, SpotlightBeams.Beam beam) {
+        BlockEntity be = contraption.getBlockEntityClientSide(beam.localPos());
+        return be instanceof SpotlightBlockEntity spotlight ? spotlight.getRange() : beam.storedRange();
+    }
+
+    /**
+     * Maps a contraption-local box into world space. The contraption can be rotated arbitrarily, so
+     * the box is rebuilt from its transformed corners. Both ends of the current tick are mapped —
+     * the render pose is interpolated between them, and rotations in between stay inside the union.
+     */
+    private static AABB worldBounds(AABB local, AbstractContraptionEntity entity) {
+        double minX = Double.POSITIVE_INFINITY, minY = Double.POSITIVE_INFINITY, minZ = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY, maxZ = Double.NEGATIVE_INFINITY;
+        for (int pose = 0; pose < 2; pose++) {
+            float partialTicks = pose == 0 ? 0f : 1f;
+            boolean prevAnchor = pose == 0;
+            for (int corner = 0; corner < 8; corner++) {
+                Vec3 world = entity.toGlobalVector(new Vec3(
+                    (corner & 1) == 0 ? local.minX : local.maxX,
+                    (corner & 2) == 0 ? local.minY : local.maxY,
+                    (corner & 4) == 0 ? local.minZ : local.maxZ), partialTicks, prevAnchor);
+                minX = Math.min(minX, world.x);
+                minY = Math.min(minY, world.y);
+                minZ = Math.min(minZ, world.z);
+                maxX = Math.max(maxX, world.x);
+                maxY = Math.max(maxY, world.y);
+                maxZ = Math.max(maxZ, world.z);
+            }
+        }
+        return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
     /**

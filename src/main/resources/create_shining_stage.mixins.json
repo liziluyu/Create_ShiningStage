@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.shiningstage.create_shining_stage.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "EntityCullingMixin",
+    "ContraptionMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

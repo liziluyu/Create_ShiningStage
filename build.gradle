@@ -127,6 +127,11 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    // sponge-mixin's annotation processor exists only to emit refmaps (obfuscated-name side tables),
+    // which NeoForge does not use: dev and production both run on official mappings. Left enabled it
+    // fails the build on any @Inject target ("Unable to locate obfuscation mapping"), and
+    // ModDevGradle only wires it up in its legacy-Forge mode anyway.
+    options.compilerArgs.add('-proc:none')
 }
 
 idea {
