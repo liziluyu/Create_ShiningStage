@@ -17,14 +17,12 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class MicrophoneBlockEntity extends SmartBlockEntity {
-    /** Adjustable listening range bounds, in blocks. */
-    public static final int MIN_RANGE = 4;
+    /** Adjustable listening range bounds, in blocks; 0 disables listening entirely. */
+    public static final int MIN_RANGE = 0;
     public static final int MAX_RANGE = 32;
     /** Initial listening range on placement. */
     public static final int DEFAULT_RANGE = 16;
 
-    /** Cached on neighborChanged; read by the sound event handler so the BE never ticks. */
-    private boolean redstoneOn;
     private ScrollValueBehaviour range;
     private final Set<BlockPos> boundSpeakers = new LinkedHashSet<>();
 
@@ -42,17 +40,9 @@ public class MicrophoneBlockEntity extends SmartBlockEntity {
         behaviours.add(range);
     }
 
-    /** Listening range in blocks (MIN_RANGE..MAX_RANGE), adjusted via the top value box. */
+    /** Listening range in blocks; 0 means the microphone ignores all sound. */
     public int getRange() {
         return range == null ? DEFAULT_RANGE : range.getValue();
-    }
-
-    public boolean isRedstoneOn() {
-        return redstoneOn;
-    }
-
-    public void setRedstoneOn(boolean redstoneOn) {
-        this.redstoneOn = redstoneOn;
     }
 
     public Set<BlockPos> getBoundSpeakers() {
@@ -87,9 +77,6 @@ public class MicrophoneBlockEntity extends SmartBlockEntity {
         super.onLoad();
         if (level != null && !level.isClientSide) {
             SoundRelayHandler.register(level.dimension(), worldPosition);
-            // neighborChanged never fires for the placed block itself, and the persisted flag may be stale
-            // after a chunk reload, so recompute the power state here.
-            setRedstoneOn(level.getBestNeighborSignal(worldPosition) > 0);
         }
     }
 
@@ -106,14 +93,12 @@ public class MicrophoneBlockEntity extends SmartBlockEntity {
     @Override
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.write(tag, registries, clientPacket);
-        tag.putBoolean("RedstoneOn", redstoneOn);
         tag.putLongArray("BoundSpeakers", boundSpeakers.stream().mapToLong(BlockPos::asLong).toArray());
     }
 
     @Override
     protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.read(tag, registries, clientPacket);
-        redstoneOn = tag.getBoolean("RedstoneOn");
         boundSpeakers.clear();
         for (long packed : tag.getLongArray("BoundSpeakers")) {
             boundSpeakers.add(BlockPos.of(packed));

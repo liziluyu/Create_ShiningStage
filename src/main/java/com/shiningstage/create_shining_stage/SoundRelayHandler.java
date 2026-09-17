@@ -66,7 +66,7 @@ public class SoundRelayHandler {
             return;
         }
         for (BlockPos micPos : List.copyOf(mics)) {
-            if (!(level.getBlockEntity(micPos) instanceof MicrophoneBlockEntity mic) || !mic.isRedstoneOn()) {
+            if (!(level.getBlockEntity(micPos) instanceof MicrophoneBlockEntity mic) || mic.getRange() <= 0) {
                 continue;
             }
             int range = mic.getRange();

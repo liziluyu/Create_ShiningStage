@@ -37,7 +37,9 @@ public class ModBlocks {
     public static final Supplier<MicrophoneBlock> MICROPHONE =
         BLOCKS.register("microphone", () -> new MicrophoneBlock(BlockBehaviour.Properties.of()
             .strength(3.5f)
-            .sound(SoundType.METAL)));
+            .sound(SoundType.METAL)
+            // The tripod-mount model is not a full cube; occluding would cut see-through gaps in neighbors.
+            .noOcclusion()));
 
     public static final Supplier<BlockItem> MICROPHONE_ITEM =
         ITEMS.register("microphone", () -> new BlockItem(MICROPHONE.get(), new Item.Properties()));

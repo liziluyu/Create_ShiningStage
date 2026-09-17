@@ -1,10 +1,8 @@
 {
   "variants": {
-    "facing=up":    { "model": "minecraft:block/sculk_sensor" },
-    "facing=down":  { "model": "minecraft:block/sculk_sensor", "x": 180 },
-    "facing=north": { "model": "minecraft:block/sculk_sensor", "x": 90 },
-    "facing=south": { "model": "minecraft:block/sculk_sensor", "x": 90, "y": 180 },
-    "facing=west":  { "model": "minecraft:block/sculk_sensor", "x": 90, "y": 270 },
-    "facing=east":  { "model": "minecraft:block/sculk_sensor", "x": 90, "y": 90 }
+    "facing=north": { "model": "create_shining_stage:block/microphone_tripod" },
+    "facing=east": { "model": "create_shining_stage:block/microphone_tripod", "y": 90 },
+    "facing=south": { "model": "create_shining_stage:block/microphone_tripod", "y": 180 },
+    "facing=west": { "model": "create_shining_stage:block/microphone_tripod", "y": 270 }
   }
 }
