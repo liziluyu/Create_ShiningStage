@@ -61,4 +61,14 @@ public class ModBlocks {
 
     public static final Supplier<BlockItem> TRUSS_ITEM =
         ITEMS.register("truss", () -> new BlockItem(TRUSS.get(), new Item.Properties()));
+
+    public static final Supplier<PositionZeroBlock> POSITION_ZERO =
+        BLOCKS.register("position_zero", () -> new PositionZeroBlock(BlockBehaviour.Properties.of()
+            .strength(3.5f)
+            .sound(SoundType.METAL)
+            // vanilla's spelling. Also clears canOcclude, so noOcclusion() on top is redundant.
+            .noCollission()));
+
+    public static final Supplier<BlockItem> POSITION_ZERO_ITEM =
+        ITEMS.register("position_zero", () -> new BlockItem(POSITION_ZERO.get(), new Item.Properties()));
 }

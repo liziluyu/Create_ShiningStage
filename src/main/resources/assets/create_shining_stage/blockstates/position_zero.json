@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "create_shining_stage:block/position_zero" },
+    "facing=east": { "model": "create_shining_stage:block/position_zero", "y": 90 },
+    "facing=south": { "model": "create_shining_stage:block/position_zero", "y": 180 },
+    "facing=west": { "model": "create_shining_stage:block/position_zero", "y": 270 }
+  }
+}

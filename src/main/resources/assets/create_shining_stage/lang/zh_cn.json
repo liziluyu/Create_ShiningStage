@@ -11,5 +11,6 @@
   "block.create_shining_stage.truss": "桁架",
   "block.create_shining_stage.truss.tooltip.1": "支撑舞台的金属结构！",
   "block.create_shining_stage.truss.tooltip.2": "可以被红石充能",
+  "block.create_shining_stage.position_zero": "定位点",
   "itemGroup.create_shining_stage": "闪耀舞台"
 }

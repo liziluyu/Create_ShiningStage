@@ -11,5 +11,6 @@
   "block.create_shining_stage.truss": "Truss",
   "block.create_shining_stage.truss.tooltip.1": "The metal frame holding up the stage!",
   "block.create_shining_stage.truss.tooltip.2": "Can be charged by redstone",
+  "block.create_shining_stage.position_zero": "Position Zero",
   "itemGroup.create_shining_stage": "Create Shining Stage"
 }
