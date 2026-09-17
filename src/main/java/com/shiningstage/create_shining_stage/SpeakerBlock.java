@@ -12,16 +12,29 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 import org.jetbrains.annotations.Nullable;
 
 public class SpeakerBlock extends HorizontalDirectionalBlock implements IBE<SpeakerBlockEntity> {
     public static final MapCodec<SpeakerBlock> CODEC = simpleCodec(SpeakerBlock::new);
+
+    /**
+     * Outline/collision shape: a single box covering the whole model (x 2..14, y 0..16, z 1..16 in
+     * model units); the recess under the top cap is not worth carving out. Horizontal shapes are the
+     * north one rotated to match the blockstate y-rotations.
+     */
+    private static final VoxelShape SHAPE_NORTH = Block.box(2, 0, 1, 14, 16, 16);
+    private static final VoxelShape SHAPE_EAST = Block.box(0, 0, 2, 15, 16, 14);
+    private static final VoxelShape SHAPE_SOUTH = Block.box(2, 0, 0, 14, 16, 15);
+    private static final VoxelShape SHAPE_WEST = Block.box(1, 0, 2, 16, 16, 14);
 
     public SpeakerBlock(Properties properties) {
         super(properties);
@@ -44,6 +57,18 @@ public class SpeakerBlock extends HorizontalDirectionalBlock implements IBE<Spea
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+    }
+
+    @Override
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        // FACING is HORIZONTAL_FACING, so the default only ever covers NORTH (and unreachable UP/DOWN,
+        // which the property type still admits - same idiom as vanilla TrapDoorBlock).
+        return switch (state.getValue(FACING)) {
+            case EAST -> SHAPE_EAST;
+            case SOUTH -> SHAPE_SOUTH;
+            case WEST -> SHAPE_WEST;
+            default -> SHAPE_NORTH;
+        };
     }
 
     @Override
