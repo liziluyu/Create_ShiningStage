@@ -52,6 +52,11 @@ neoForge {
         data {
             data()
             programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+            // Datagen gets its own game directory instead of sharing run/ with the client: run/mods is a
+            // client-side shader test setup (Iris + Sodium), and loading it here deadlocks mod construction
+            // (Sodium's RenderStateShard static init vs Registrate's RenderType static init, both still
+            // running in parallel on the mod-loading threads). Nothing in src/generated depends on it.
+            gameDirectory = file('build/run-data')
         }
 
         configureEach {

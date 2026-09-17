@@ -10,8 +10,6 @@ import net.minecraft.core.GlobalPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class SpeakerBlockEntity extends SmartBlockEntity {
@@ -39,24 +37,6 @@ public class SpeakerBlockEntity extends SmartBlockEntity {
     public void clearBinding() {
         boundMic = null;
         notifyUpdate();
-    }
-
-    /**
-     * Replay a captured sound at this speaker. The relay guard makes the PlayLevelSoundEvent fired by this
-     * call invisible to every microphone, so speaker output can never be captured back (no echo loops).
-     */
-    public void playRelayed(SoundEvent sound, float volume, float pitch) {
-        if (level == null || level.isClientSide) {
-            return;
-        }
-        // Server-thread only: save/restore keeps the guard correct even if a replay ever nests.
-        boolean prev = SoundRelayHandler.relayGuard;
-        SoundRelayHandler.relayGuard = true;
-        try {
-            level.playSound(null, worldPosition, sound, SoundSource.BLOCKS, volume, pitch);
-        } finally {
-            SoundRelayHandler.relayGuard = prev;
-        }
     }
 
     @Override

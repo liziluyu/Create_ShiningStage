@@ -1,5 +1,7 @@
 package com.shiningstage.create_shining_stage;
 
+import java.util.List;
+
 import com.mojang.serialization.MapCodec;
 import com.simibubi.create.foundation.block.IBE;
 
@@ -87,11 +89,19 @@ public class SpeakerBlock extends HorizontalDirectionalBlock implements IBE<Spea
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer,
                             ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
-        if (level.isClientSide || !(level.getBlockEntity(pos) instanceof SpeakerBlockEntity speaker)) {
-            return;
-        }
         GlobalPos mic = stack.get(ModDataComponents.BOUND_MIC.get());
         if (mic == null) {
+            return;
+        }
+        // Spent by the placement, on both sides and before the side check: a held speaker carrying
+        // BOUND_MIC means "the next one I place listens to this microphone", and the client draws that
+        // microphone's outline straight from the component (SpeakerBindingOutliner) - left behind, the
+        // component outlives the binding it marks and the outline keeps pointing at a microphone this
+        // speaker will never be bound to. Vanilla hands setPlacedBy the player's own hand stack before
+        // consuming one, so removing it here also updates the client on the placing tick, no round trip.
+        // A bind that fails below is spent all the same; the warning says to click the microphone again.
+        stack.remove(ModDataComponents.BOUND_MIC.get());
+        if (level.isClientSide || !(level.getBlockEntity(pos) instanceof SpeakerBlockEntity speaker)) {
             return;
         }
         Player player = placer instanceof Player p ? p : null;

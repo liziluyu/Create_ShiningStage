@@ -3,7 +3,6 @@
   "block.create_shining_stage.spotlight.max_length": "最大长度",
   "block.create_shining_stage.tripod": "三脚架",
   "block.create_shining_stage.microphone": "麦克风",
-  "block.create_shining_stage.microphone.range": "监听范围",
   "block.create_shining_stage.speaker": "音响",
   "block.create_shining_stage.speaker.bound": "已绑定到麦克风",
   "block.create_shining_stage.speaker.bind_failed_dimension": "绑定失败:麦克风在其他维度",
@@ -12,5 +11,7 @@
   "block.create_shining_stage.truss.tooltip.1": "支撑舞台的金属结构！",
   "block.create_shining_stage.truss.tooltip.2": "可以被红石充能",
   "block.create_shining_stage.position_zero": "定位点",
+  "create_shining_stage.configuration.microphoneRange": "麦克风监听范围",
+  "create_shining_stage.configuration.speakerClusterRadius": "音响聚合半径",
   "itemGroup.create_shining_stage": "闪耀舞台"
 }

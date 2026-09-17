@@ -1,0 +1,43 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_amethyst": {
+      "conditions": {
+        "items": [
+          {
+            "items": "#c:gems/amethyst"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_sturdy_sheet": {
+      "conditions": {
+        "items": [
+          {
+            "items": "create:sturdy_sheet"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "create_shining_stage:crafting/microphone"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_sturdy_sheet",
+      "has_amethyst"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "create_shining_stage:crafting/microphone"
+    ]
+  }
+}
