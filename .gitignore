@@ -32,6 +32,12 @@ bin/
 ### Mac OS ###
 .DS_Store
 
+### Icon artwork ###
+# Working copies of the mod icon at the repo root; the shipped icon lives in
+# src/main/resources/icon.png (referenced by logoFile in neoforge.mods.toml).
+/icon.png
+/icon.psb
+
 ### Minecraft Modding ###
 run/
 !**/src/**/run/
