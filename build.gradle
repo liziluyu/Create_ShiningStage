@@ -86,6 +86,10 @@ dependencies {
     implementation("maven.modrinth:sable:${sable_version}") { transitive = false }
     // SableCompanion interface lives in sable's jarjar, not the outer jar; needed to compile against it.
     compileOnly files("libs/sable-companion-common-1.21.1-1.6.0.jar")
+    // Veil draws the spotlight beam with a shader of this mod's own (see SpotlightRenderer). It is
+    // shipped inside sable's jarjar (hence this vendored copy, matching sable_version) and Veil
+    // loads its programs from this mod's resources, so nothing else is needed at runtime.
+    compileOnly files("libs/veil-neoforge-1.21.1-4.3.2.jar")
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

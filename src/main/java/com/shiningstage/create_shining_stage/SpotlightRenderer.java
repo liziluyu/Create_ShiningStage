@@ -12,6 +12,7 @@ import com.mojang.math.Axis;
 
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.util.SableDistUtil;
+import foundry.veil.api.client.render.VeilRenderBridge;
 
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderStateShard;
@@ -21,6 +22,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.DirectionalBlock;
@@ -35,25 +37,48 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
     static final float HALF_ANGLE_TAN = 0.3f;
     /** Half-size of the top (emitter) face; matches the laser pointer's 0.48 cross-section. */
     static final float TOP_HALF = 0.24f;
-    /** Alpha at the emitter end (most opaque), scaled by the redstone control. */
+    /** Alpha of a single side at the emitter end (most opaque), scaled by the redstone control. */
     static final float MAX_ALPHA = 0.5f;
-    /** Alpha at the far end (most transparent), scaled by the redstone control. */
+    /** Alpha of a single side at the far end (most transparent), scaled by the redstone control. */
     static final float MIN_ALPHA = 0.3f;
     /** Length of the transparent fade-out at the beam tip, in blocks (laser pointer uses 0.5; we use a longer, softer fade). */
     static final float END_FADE = 1.5f;
+    /** Alpha of a side at the fade start, as a share of the emitter end. */
+    private static final float TIP_SHARE = MIN_ALPHA / MAX_ALPHA;
+    /**
+     * The beam's shader program, from {@code assets/create_shining_stage/pinwheel/shaders/program/}.
+     * See {@link #BEAM} for why the beam is drawn by this mod's own program rather than a vanilla
+     * one.
+     */
+    private static final ResourceLocation BEAM_PROGRAM =
+        ResourceLocation.fromNamespaceAndPath(CreateShiningStage.MOD_ID, "spotlight_beam/spotlight_beam");
 
+    /**
+     * The beam, drawn by this mod's own shader program ({@link #BEAM_PROGRAM}).
+     *
+     * <p>A shader pack adapts to vanilla by replacing its shader getters, so a beam drawn with any
+     * vanilla program is shaded by the pack as though it were a lit surface — measured against the
+     * pack's own shadow map, with no light of its own and no say over its transparency. Veil's
+     * programs are not reached by that substitution, so the beam is emitted light under every pack
+     * and with no pack installed alike, and needs no pack-specific path. Drawing it here also keeps
+     * its two scalars — opacity and taper — in float: the alpha of a vertex colour is only eight
+     * bits wide, and a beam dimmed by a low signal rounds away to nothing inside it.
+     */
     private static final RenderType BEAM = RenderType.create(
         "create_shining_stage:spotlight_beam",
-        DefaultVertexFormat.POSITION_COLOR,
+        DefaultVertexFormat.POSITION_TEX_COLOR,
         VertexFormat.Mode.QUADS,
-        256, false, true,
+        1536, false, true,
         RenderType.CompositeState.builder()
-            .setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
+            .setShaderState(VeilRenderBridge.shaderState(BEAM_PROGRAM))
             .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
             .setCullState(RenderStateShard.NO_CULL)
             // Never write depth: crossing translucent beams would depth-cull each other.
             .setWriteMaskState(RenderStateShard.COLOR_WRITE)
             .createCompositeState(false));
+
+    /** The frustum's four sides, as pairs of cross-section corner indices. */
+    private static final int[][] SLABS = { { 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 0 } };
 
     public SpotlightRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -89,7 +114,8 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
 
         // Redstone can't be read per-face; a single signal drives both convergence and
         // opacity together. 0 = widest frustum + transparent, 15 = prism + full opacity.
-        float control = level.getBestNeighborSignal(pos) / 15f;
+        int signal = level.getBestNeighborSignal(pos);
+        float control = signal / 15f;
         if (control <= 0f) {
             return;
         }
@@ -135,28 +161,39 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
         float[][] mid = { {-midHalf, -midHalf}, {midHalf, -midHalf}, {midHalf, midHalf}, {-midHalf, midHalf} };
         float[][] bottom = { {-bottomHalf, -bottomHalf}, {bottomHalf, -bottomHalf}, {bottomHalf, bottomHalf}, {-bottomHalf, bottomHalf} };
 
-        VertexConsumer vc = buffer.getBuffer(BEAM);
+        float sideAlpha = control * MAX_ALPHA;
+
         Matrix4f mat = ms.last().pose();
-        float topAlpha = control * MAX_ALPHA;
-        float bottomAlpha = control * MIN_ALPHA;
-        for (int i = 0; i < 4; i++) {
-            int j = (i + 1) % 4;
-            // Main segment: emitter -> fade start, with the redstone-driven alpha gradient.
-            vertex(vc, mat, top[i][0], top[i][1], 0, r, g, b, topAlpha);
-            vertex(vc, mat, top[j][0], top[j][1], 0, r, g, b, topAlpha);
-            vertex(vc, mat, mid[j][0], mid[j][1], fadeStart, r, g, b, bottomAlpha);
-            vertex(vc, mat, mid[i][0], mid[i][1], fadeStart, r, g, b, bottomAlpha);
+        VertexConsumer vc = buffer.getBuffer(BEAM);
+        for (int[] slab : SLABS) {
+            int i = slab[0];
+            int j = slab[1];
+            // Main segment: emitter -> fade start, at the redstone-scaled alpha.
+            vertex(vc, mat, top[i][0], top[i][1], 0, sideAlpha, 1f, r, g, b);
+            vertex(vc, mat, top[j][0], top[j][1], 0, sideAlpha, 1f, r, g, b);
+            vertex(vc, mat, mid[j][0], mid[j][1], fadeStart, sideAlpha, TIP_SHARE, r, g, b);
+            vertex(vc, mat, mid[i][0], mid[i][1], fadeStart, sideAlpha, TIP_SHARE, r, g, b);
             // Taper segment: fade start -> tip, fading out to transparent.
-            vertex(vc, mat, mid[i][0], mid[i][1], fadeStart, r, g, b, bottomAlpha);
-            vertex(vc, mat, mid[j][0], mid[j][1], fadeStart, r, g, b, bottomAlpha);
-            vertex(vc, mat, bottom[j][0], bottom[j][1], span, r, g, b, 0f);
-            vertex(vc, mat, bottom[i][0], bottom[i][1], span, r, g, b, 0f);
+            vertex(vc, mat, mid[i][0], mid[i][1], fadeStart, sideAlpha, TIP_SHARE, r, g, b);
+            vertex(vc, mat, mid[j][0], mid[j][1], fadeStart, sideAlpha, TIP_SHARE, r, g, b);
+            vertex(vc, mat, bottom[j][0], bottom[j][1], span, sideAlpha, 0f, r, g, b);
+            vertex(vc, mat, bottom[i][0], bottom[i][1], span, sideAlpha, 0f, r, g, b);
         }
         ms.popPose();
     }
 
+    /**
+     * Emits one beam vertex. The two scalars the beam needs — its opacity and its taper — ride in UV
+     * rather than the vertex colour: a colour's alpha is eight bits wide, so a beam dimmed by a low
+     * redstone signal rounds away to nothing inside it, while a UV is a float.
+     *
+     * @param opacity the opacity of this side, held constant along the beam
+     * @param taper   emitter-to-tip fade, 1 at the emitter down to 0 at the tip
+     */
     private static void vertex(VertexConsumer vc, Matrix4f mat, float x, float y, float z,
-                               float r, float g, float b, float a) {
-        vc.addVertex(mat, x, y, z).setColor(r, g, b, a);
+                               float opacity, float taper, float r, float g, float b) {
+        vc.addVertex(mat, x, y, z)
+            .setColor(r, g, b, 1f)
+            .setUv(opacity, taper);
     }
 }
