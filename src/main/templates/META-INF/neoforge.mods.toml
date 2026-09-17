@@ -9,6 +9,8 @@ config="${mod_id}.mixins.json"
 modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
+# Jar-root relative, resolved against src/main/resources; shown in the mod list.
+logoFile="icon.png"
 description='''
 A Create addon powered by Create and Create: Aeronautics.
 '''
