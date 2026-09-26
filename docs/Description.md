@@ -38,6 +38,8 @@ Inside is a single slot that takes nothing but Cold Spark Fuel, and it is fed fr
 
 Redstone fires it: a rising signal starts a two-second spray, and the machine ignores the line for those two seconds — a bare flicker of redstone mid-spray is dropped rather than queued. A line held high therefore gives exactly one shot: to fire again, let it drop and rise once more. An unpowered or empty machine simply stays quiet.
 
+It also works mounted on a Create: Aeronautics physics structure: assemble it onto a ship and it keeps its fuel, keeps its timing and sprays from wherever the ship has carried it.
+
 The spray itself is a genuine fountain of individual sparks — hundreds of tiny white points thrown up to the configured height, drifting apart as they climb. They come out of a small aperture rather than a single point, and a spark leaves from the side it is about to drift towards, so the spray opens outwards like a real nozzle's instead of the two directions cancelling. A spark dies just after it reaches the top rather than falling back through the spray, so the fountain stops in the air. The sparks are light they make themselves: they are not lit by, and do not light, the world around them.
 
 Each spark is drawn from a three-cell sprite strip, and its age picks the cell: it leaves the nozzle as a long streak, shortens as it climbs, and is a brief ember by the time it fades out at the top. Every stage is visible at once, on the sparks at that point in their flight — the sparks do not flicker between shapes together.

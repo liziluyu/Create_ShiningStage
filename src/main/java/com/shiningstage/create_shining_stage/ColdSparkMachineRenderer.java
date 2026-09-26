@@ -188,9 +188,14 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
         float fastest = 1f + SPEED_VARIATION;
         double reach = 6.0 * LATERAL_SPREAD * fastest * fastest * be.getSprayHeight() + SPARK_SIZE
             + BIRTH_RADIUS;
-        return new AABB(be.getBlockPos())
-            .expandTowards(0, be.getSprayHeight() + SPARK_SIZE, 0)
-            .inflate(reach);
+        // The spray only leaves through the top, but the box is grown *symmetrically* so its centre
+        // stays on the block. Sable decides which physics structure a block entity belongs to from this
+        // box's centre (it redirects ClientHooks.isBlockEntityRendererVisible and resolves the
+        // containing sub-level from there), so a box whose centre rode up with the fountain would stop
+        // being found as soon as the spray reached past the edge of the ship — and the whole spray
+        // would then be culled, since the untransformed plot-space box is nowhere near the camera.
+        // Costing a little overdraw to keep the centre put is what makes the machine work on a ship.
+        return new AABB(be.getBlockPos()).inflate(reach, be.getSprayHeight() + SPARK_SIZE, reach);
     }
 
     @Override
