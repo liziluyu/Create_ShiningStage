@@ -49,6 +49,12 @@ import net.minecraft.world.phys.Vec3;
  * narrow — {@link #LATERAL_SPREAD} is a few percent of the launch speed — that tilt is only a few
  * degrees, so it takes an elongated sprite to see it at all; a round one hides it completely.
  *
+ * <p>The sprite also ages with the spark: it is a strip of {@link #SPRITE_FRAMES} cells and the spark's
+ * own age picks the cell, so a jet of them shows all of the cells at once, each on the sparks at the
+ * matching point in their flight. That is the opposite of an animated sprite sheet, whose frame is
+ * driven by a clock shared across the whole texture — every spark would switch cell on the same tick
+ * and the spray would flicker between shapes instead of each spark burning out on its own.
+ *
  * <p>The one thing missing is a world: no spark is stopped by a block above it. Sparks die on their
  * own parabola, {@link #FALL_DISTANCE} blocks past the apex, which is what a fountain built to shoot
  * into open air looks like.
@@ -83,11 +89,30 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
      */
     static final float SPARK_SIZE = 0.16f;
     /**
+     * Cells in the spray sprite, stacked top to bottom, each as tall as it is wide (so three cells
+     * make a 16x48 image). A spark is drawn from one cell at a time — the strip is not looped by the
+     * atlas, the spark's own age picks the cell — which is what gives it a beginning, a middle and an
+     * end rather than a per-frame flicker across the whole spray.
+     */
+    static final int SPRITE_FRAMES = 3;
+    /**
      * Sideways launch speed as a share of the upward one, i.e. the half-angle of the spray cone. The
      * spread widens with height on its own (displacement works out at 4*LATERAL_SPREAD*H blocks), so
      * this stays small: 0.06 gives a 16-block fountain a ~3.8-block-wide top.
      */
     static final float LATERAL_SPREAD = 0.06f;
+    /**
+     * Radius of the disc the sparks are launched from, in blocks. Every spark starts somewhere inside
+     * it rather than all of them at one point, so the spray comes out of an aperture the size of a
+     * nozzle instead of from a mathematical point — at close range the base of the fountain otherwise
+     * reads as a single bright dot. Two sixteenths is a little narrower than one spark quad, so this
+     * fattens the mouth without scattering the spray.
+     *
+     * <p>A spark leaves from the side it is about to drift towards, so this widens the mouth without
+     * deciding *where* the spray goes: it and the cone push the same way, and the spray simply starts
+     * a couple of sixteenths closer to the direction it was always going to take.
+     */
+    static final float BIRTH_RADIUS = 2f / 16f;
     /**
      * Per-spark multipliers on the launch speed and on the quad's size, min..max. The speed one stays
      * small on purpose: a spark's apex goes with the square of its speed, so ±{@value} already spreads a
@@ -158,9 +183,11 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
     @Override
     public AABB getRenderBoundingBox(ColdSparkMachineBlockEntity be) {
         // Sideways reach of the fastest spark: its lateral speed times its flight time, which works out
-        // at 6*LATERAL_SPREAD*H — see LATERAL_SPREAD.
+        // at 6*LATERAL_SPREAD*H — see LATERAL_SPREAD — plus the spark's own half-width and the radius
+        // of the aperture it was launched from.
         float fastest = 1f + SPEED_VARIATION;
-        double reach = 6.0 * LATERAL_SPREAD * fastest * fastest * be.getSprayHeight() + SPARK_SIZE;
+        double reach = 6.0 * LATERAL_SPREAD * fastest * fastest * be.getSprayHeight() + SPARK_SIZE
+            + BIRTH_RADIUS;
         return new AABB(be.getBlockPos())
             .expandTowards(0, be.getSprayHeight() + SPARK_SIZE, 0)
             .inflate(reach);
@@ -222,10 +249,13 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
             }
 
             float speed = launchSpeed * (1f + SPEED_VARIATION * (unit(h1) * 2f - 1f));
+            // A spark's rise lasts exactly speed/GRAVITY, which the sprite's own aging is keyed to —
+            // see spriteCell. Named rather than folded into the life so both readers use one fact.
+            float riseTicks = speed / GRAVITY;
             // Rise to the apex, then the fixed fall distance. Nothing is drawn past the death point,
             // so the spark leaves the air just below the top of the fountain rather than sinking all
             // the way back to the nozzle.
-            float life = speed / GRAVITY + FALL_TICKS;
+            float life = riseTicks + FALL_TICKS;
             if (age >= life) {
                 continue;
             }
@@ -234,8 +264,20 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
             float lateral = speed * LATERAL_SPREAD * (0.5f + unit(h2));
             float dirX = Mth.cos(azimuth);
             float dirZ = Mth.sin(azimuth);
-            float x = dirX * lateral * age;
-            float z = dirZ * lateral * age;
+            // The spark leaves from the side of the aperture it is about to drift towards, so the
+            // launch offset and the deflection reinforce each other rather than being two unrelated
+            // random directions that mostly cancel out. That is also what a nozzle does: its flow
+            // diverges away from the centre, so what comes out on the left is thrown further left.
+            // Uniform over the *disc* rather than over the radius — a radius taken linearly would
+            // bunch the sparks around the centre and leave the rim bare, since a thin ring's area
+            // shrinks with its radius.
+            float birthRadius = BIRTH_RADIUS * Mth.sqrt(unit(h2 >>> 16));
+            float birthX = dirX * birthRadius;
+            float birthZ = dirZ * birthRadius;
+            // The drift grows with age; the launch offset does not — it is where the spark started,
+            // not how far it has travelled.
+            float x = birthX + dirX * lateral * age;
+            float z = birthZ + dirZ * lateral * age;
             // The parabola the launch speed and gravity imply: v0*t - g*t^2/2, apex at exactly the
             // configured spray height.
             float y = speed * age - 0.5f * GRAVITY * age * age;
@@ -276,8 +318,26 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
             float b = Mth.lerp(warmth, COOL_B, HOT_B);
             float size = SPARK_SIZE * (1f + SIZE_VARIATION * (unit(h2 >>> 24) * 2f - 1f));
 
-            quad(vc, pose, 0.5f + x, 1f + y, 0.5f + z, size, r, g, b, alpha, cos, sin);
+            quad(vc, pose, 0.5f + x, 1f + y, 0.5f + z, size, r, g, b, alpha, cos, sin,
+                spriteCell(age, riseTicks));
         }
+    }
+
+    /**
+     * Which cell of the sprite strip a spark shows, from its age. The rise is shared between every cell
+     * but the last and the descent takes that last one — rather than slicing the whole life into equal
+     * parts. The fall is a fixed {@link #FALL_TICKS} long however fast the spark was thrown, so on a
+     * tall spray equal parts would run the shortest cell out well before the apex and the spark would
+     * look burnt out halfway up. Keying the last cell to {@code riseTicks} instead puts it exactly at
+     * the apex, which is where the art's shortest cell belongs.
+     */
+    private static int spriteCell(float age, float riseTicks) {
+        if (age >= riseTicks) {
+            return SPRITE_FRAMES - 1;
+        }
+        // The rise runs over the remaining cells, so three frames give it two. Clamped defensively:
+        // the division is already inside [0, 1) here.
+        return Mth.clamp((int) (age / riseTicks * (SPRITE_FRAMES - 1)), 0, SPRITE_FRAMES - 2);
     }
 
     /** World time since the current shot began, or -1 if this machine has never fired. */
@@ -303,9 +363,9 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
         return Mth.sqrt(2f * GRAVITY * height);
     }
 
-    /** Emits one camera-facing spark quad, centred at the local point. */
+    /** Emits one camera-facing spark quad, centred at the local point, sampling one sprite cell. */
     private void quad(VertexConsumer vc, Matrix4f pose, float cx, float cy, float cz, float size,
-                      float r, float g, float b, float alpha, float cos, float sin) {
+                      float r, float g, float b, float alpha, float cos, float sin, int cell) {
         // {@code cos}/{@code sin} roll the sprite about the view axis — the only rotation a
         // camera-facing quad has. Rotating the two basis vectors together keeps the quad in the screen
         // plane (their cross product is unchanged) and mirrors nothing, so the corners below still
@@ -321,13 +381,18 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
         // Two triangles wound around the centre; nothing is culled and additive blending ignores the
         // order, so the corners only have to describe the quad.
         //
-        // V runs 0 at the sprite's *top* row, so the camera-up corners take V=0 and the camera-down
-        // ones V=1. Getting this backwards renders every spark upside down, which a symmetric sprite
-        // will hide — the placeholder used to be one, so the flip only shows on real art.
-        vertex(vc, pose, cx - rx - ux, cy - ry - uy, cz - rz - uz, 0f, 1f, r, g, b, alpha);
-        vertex(vc, pose, cx + rx - ux, cy + ry - uy, cz + rz - uz, 1f, 1f, r, g, b, alpha);
-        vertex(vc, pose, cx + rx + ux, cy + ry + uy, cz + rz + uz, 1f, 0f, r, g, b, alpha);
-        vertex(vc, pose, cx - rx + ux, cy - ry + uy, cz - rz + uz, 0f, 0f, r, g, b, alpha);
+        // V spans the whole sprite and runs 0 at its *top* row, so cell {@code c} of the strip occupies
+        // [c, c+1) / SPRITE_FRAMES and the camera-up corners take the cell's top edge, the camera-down
+        // ones its bottom. Getting the pair backwards renders every spark upside down, which a
+        // symmetric sprite hides — the placeholder used to be one, so the flip only showed on real art.
+        // The cells carry transparent padding above and below their art precisely so these edges, which
+        // land on texel boundaries under GL_NEAREST, never sample a lit texel of the neighbouring cell.
+        float v0 = (float) cell / SPRITE_FRAMES;
+        float v1 = (float) (cell + 1) / SPRITE_FRAMES;
+        vertex(vc, pose, cx - rx - ux, cy - ry - uy, cz - rz - uz, 0f, v1, r, g, b, alpha);
+        vertex(vc, pose, cx + rx - ux, cy + ry - uy, cz + rz - uz, 1f, v1, r, g, b, alpha);
+        vertex(vc, pose, cx + rx + ux, cy + ry + uy, cz + rz + uz, 1f, v0, r, g, b, alpha);
+        vertex(vc, pose, cx - rx + ux, cy - ry + uy, cz - rz + uz, 0f, v0, r, g, b, alpha);
     }
 
     private static void vertex(VertexConsumer vc, Matrix4f pose, float x, float y, float z,

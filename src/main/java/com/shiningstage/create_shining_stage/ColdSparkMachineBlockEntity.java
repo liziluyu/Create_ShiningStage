@@ -33,8 +33,8 @@ public class ColdSparkMachineBlockEntity extends SmartBlockEntity {
     /** Initial spray height on placement. */
     public static final int DEFAULT_SPRAY_HEIGHT = 4;
 
-    /** How long one shot lasts, in ticks (three seconds). One shot costs one fuel, paid when it starts. */
-    public static final int SPRAY_DURATION = 3 * 20;
+    /** How long one shot lasts, in ticks (two seconds). One shot costs one fuel, paid when it starts. */
+    public static final int SPRAY_DURATION = 2 * 20;
 
     /**
      * The single fuel slot. The stack predicate is what {@code ItemStackHandler#insertItem} consults, so
@@ -114,7 +114,7 @@ public class ColdSparkMachineBlockEntity extends SmartBlockEntity {
         }
 
         // The line is read every tick, spraying or not, and the sample is what defines an edge: a signal
-        // that arrives during the three seconds is dropped, and because the sample keeps up to date it
+        // that arrives during the two seconds is dropped, and because the sample keeps up to date it
         // cannot fire the moment the spray ends either.
         boolean lineNow = level.getBestNeighborSignal(worldPosition) > 0;
         if (!lineSampled) {

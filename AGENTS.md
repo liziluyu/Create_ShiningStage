@@ -53,9 +53,9 @@ ColdSparkMachineBlock (HorizontalDirectionalBlock + IBE + Create's IWrenchable)
        │  four horizontal faces only — context.getAxis().isHorizontal(), null for UP/DOWN and for the
        │  side-less query, so a funnel on the lid has nothing to feed; registered from
        │  ColdSparkMachineBlockEntity.registerCapabilities (RegisterCapabilitiesEvent)
-       ├─ shot: a rising redstone edge while idle spends one fuel and sets SPRAY_DURATION (3s of ticks).
+       ├─ shot: a rising redstone edge while idle spends one fuel and sets SPRAY_DURATION (2s of ticks).
        │  The line is sampled every tick, spraying or not, and the sample *is* the edge: a signal during
-       │  the three seconds is swallowed rather than queued, so a held line gives exactly one shot and
+       │  the two seconds is swallowed rather than queued, so a held line gives exactly one shot and
        │  the next needs a low-then-high again, and the spray can never be extended or restarted. The
        │  first sample after placement/load is a baseline, not an edge — a machine coming up beside a
        │  live line stays idle
@@ -73,6 +73,18 @@ ColdSparkMachineRenderer (client BlockEntityRenderer)
      │  dims it is its own descent, so opacity never decreases before the apex. A fade-in cannot be
      │  localised to one spark either — sparks are born continuously through the shot, so some would
      │  always be mid-ramp and the column would look permanently soft
+     ├─ a spark does not leave from the block's centre point: it starts somewhere inside a disc of
+     │  BIRTH_RADIUS (2/16 block) on the nozzle plane, so the spray comes out of an aperture the size
+     │  of a nozzle instead of a mathematical point (at close range the base otherwise reads as one
+     │  bright dot). Radius is taken as sqrt(u) so the sparks are uniform over the *disc* — taking it
+     │  linearly bunches them at the centre and leaves the rim bare. The offset is added to the drift,
+     │  not multiplied by age: it is where the spark began, not how far it has travelled
+     ├─ the launch offset and the drift share ONE azimuth (byte 2 of h1), so a spark born on the left is
+     │  thrown further left: the two reinforce instead of being unrelated random directions that mostly
+     │  cancel out. That is also what a nozzle does — its flow diverges away from the centre. It lets
+     │  the radius ride byte 2 of h2, which is why no third hash exists; all four of h2's bytes are
+     │  spoken for (0 lateral, 1 warmth, 2 birth radius, 3 size), so a new per-spark random value needs
+     │  a new byte from somewhere, not a silent reuse of one of these
      ├─ a spark only *rises*: it dies FALL_DISTANCE (0.75) blocks past its apex instead of riding the
      │  parabola back to the nozzle. The drop at the death point is exactly FALL_DISTANCE by
      │  construction, since ½·G·(2·FALL_DISTANCE/G) = FALL_DISTANCE, and the fade-out is spent inside
@@ -108,13 +120,30 @@ ColdSparkMachineRenderer (client BlockEntityRenderer)
      │  sparks cannot depth-cull each other
      ├─ the sprite is this mod's own, at
      │  src/main/resources/assets/create_shining_stage/textures/particle/cold_spark.png; the render
-     │  type JSON names it as a full path, so recolouring or reshaping the spray is an art edit there
-     │  and nothing else. It is a 2x12 vertical streak (near-white at the top row, warm orange at the
-     │  bottom, binary alpha), drawn with GL_NEAREST, which suits a hard-edged sprite. The streak
-     │  orientation is deliberate: V=0 is the sprite's top row and also the end the roll points along
-     │  the launch direction, so the white *leading* tip leads and the orange tail trails. Keep at
-     │  least one axis elongated — the roll is only a few degrees (see below), so a round or square
-     │  sprite throws that information away and the spray reads as a field of dots
+     │  type JSON names it as a full path, so reshaping or recolouring the spray is an art edit there
+     │  and nothing else. It is a 16x48 strip of SPRITE_FRAMES (3) square cells, each a vertical streak
+     │  that is near-white at its top row and warm orange at its bottom, with binary alpha; the three
+     │  differ only in LENGTH (10, 7, 5 texels), so a spark visibly shrinks as it flies. Drawn with
+     │  GL_NEAREST, which suits hard-edged art. The orientation is deliberate: V=0 is the strip's top
+     │  row and also the end the roll points along the launch direction, so the white *leading* tip
+     │  leads and the orange tail trails — and because cells stack in V, that means the bright end of
+     │  each cell must stay at the TOP of its own cell. Keep at least one axis elongated: the roll is
+     │  only a few degrees, so a round or square sprite throws that information away
+     ├─ the cell is picked by the spark's own AGE (spriteCell), not by a clock: cells 0..FRAMES-2 split
+     │  the rise and the last cell covers the apex plus the whole descent. Split that way *because* the
+     │  fall is a fixed FALL_TICKS however fast the spark was thrown — equal slices of the life would
+     │  run the shortest cell out well before the apex on a tall spray, and the spark would look burnt
+     │  out halfway up. Keying the last cell to riseTicks (== speed/GRAVITY, the tick the spark
+     │  actually reaches its apex) puts it exactly at the apex for every spark regardless of speed
+     ├─ the strip must NOT be a .mcmeta animated sprite. Vanilla animates by ticking a frame counter
+     │  on the *shared* SpriteContents and uploading that frame over the atlas cell in place, so the
+     │  frame is driven by a global clock: every spark would flip cell on the same tick and the spray
+     │  would flicker between shapes instead of each spark aging on its own. Indexing V by age keeps
+     │  every cell resident at once, which is what lets a jet of sparks show all of them simultaneously.
+     │  It also costs nothing extra: same 4 vertices, same 1 draw call, same single texture
+     ├─ each cell's art must stay clear of its own V edges. Cell boundaries land on texel boundaries
+     │  under GL_NEAREST, so a streak touching its edge could sample the neighbouring cell's lit
+     │  texels; the cells' transparent padding is what prevents that. Re-check after any art edit
      ├─ own Veil program (pinwheel/shaders/program/cold_spark) + own render type
      │  (pinwheel/rendertypes/cold_spark.json), for the same reason the beam has one: a shader pack
      │  replaces vanilla's shader getters, so a vanilla-drawn spark would be shaded as a lit surface
@@ -204,7 +233,7 @@ No lint/format tasks are configured (no Spotless/Checkstyle).
 - `src/main/java/.../CreateShiningStage.java` — mod entry point (`@Mod`), all DeferredRegister wiring
 - `.../SpotlightBlock.java` / `SpotlightBlockEntity.java` / `SpotlightRenderer.java` — the full content implementation
 - `.../MicrophoneBlock.java` / `MicrophoneBlockEntity.java` / `SpeakerBlock.java` / `SpeakerBlockEntity.java` / `SoundRelayHandler.java` — the sound relay (server side)
-- `.../ColdSparkMachineBlock.java` / `ColdSparkMachineBlockEntity.java` / `ColdSparkMachineValueBoxTransform.java` / `ColdSparkMachineRenderer.java` — the cold spark machine: four-way control face, spray-height panel, one side-fed fuel slot, the redstone-triggered three-second shot, and the spray it draws
+- `.../ColdSparkMachineBlock.java` / `ColdSparkMachineBlockEntity.java` / `ColdSparkMachineValueBoxTransform.java` / `ColdSparkMachineRenderer.java` — the cold spark machine: four-way control face, spray-height panel, one side-fed fuel slot, the redstone-triggered two-second shot, and the spray it draws
 - `src/main/resources/assets/create_shining_stage/pinwheel/rendertypes/cold_spark.json` + `pinwheel/shaders/program/cold_spark/` + `textures/particle/cold_spark.png` — the spray's additive Veil render type, its program, and its sprite (see the render-type paragraph under Key pattern)
 - `.../ModItems.java` — plain items (the cold spark fuel); block items stay next to their blocks in `ModBlocks`
 - `.../MicrophoneMovementBehaviour.java` / `SpeakerMovementBehaviour.java` — Create contraption actors that keep a mounted microphone listening and a mounted speaker playable
@@ -234,5 +263,5 @@ No lint/format tasks are configured (no Spotless/Checkstyle).
 ## Testing & QA
 
 - **No tests exist** (no `src/test`, no game tests, no CI workflows). `runGameTestServer` is configured with the mod namespace enabled if game tests are added later (`@GameTest` in namespace `create_shining_stage`).
-- Practical verification = `.\gradlew.bat build` plus `.\gradlew.bat runClient`: place a Spotlight, check beam rendering, dye recoloring, scroll-wheel range adjustment, redstone-strength behavior, and contraption culling (assemble the spotlight into a contraption, look away until the hull leaves the frustum — the beam must stay visible). For the audio: bind a speaker to a microphone, power the speaker with redstone, then make a noise — the relay must replay it, and must stop the moment the speaker loses power (and start again when it regains it, with no reliance on any cached state). Change `microphoneRange` and reload the config (config screen or `/reload`) and confirm the new radius applies to an already-placed microphone without re-placing it. Then assemble both into a contraption — the relay must keep working, and the replayed sound must come from where the speaker has moved to, not from where it was assembled (a wrong transform shows up as silence or as a beam of sound near the world origin). Disassembling must hand the pair back to their block entities, with no double relay in between, and the disassembled speaker must again require redstone. For grouping: bind a microphone to four speakers, two of them adjacent and two far apart, and confirm the adjacent pair produces one replay at their midpoint with the summed volume rather than two. Assembling from commands needs a nudge: a mechanical bearing only tries to assemble on a speed change, and a bearing placed into an already spinning network never sees one — place the rig first and the motor last (or break and re-place the motor). For the cold spark machine: place it, wrench-turn all four sides (the control face and its value box must travel with it, and the fuel already in the slot must survive the turn), set the spray height with the value box, then feed the slot — from a side, where a funnel works, and from the lid, where a funnel on top must find nothing to insert into. Pulse it with redstone: one shot per rising edge, one fuel per shot, and nothing at all with an empty slot. Hold the line high — it must fire once and then stay quiet rather than re-firing every three seconds; a signal arriving during the three seconds must be ignored rather than queued; a machine placed beside an already-powered line must not fire until that line drops and rises again. The spray itself has no test but the eye: stand back and fire it — a fountain of distinct white sparks should rise to about the configured height and fall back, with the last sparks still landing just after the three seconds are up. Nothing should be drawn while the machine is idle, and the sparks must stay put when the camera moves (they are world geometry, not a screen effect).
+- Practical verification = `.\gradlew.bat build` plus `.\gradlew.bat runClient`: place a Spotlight, check beam rendering, dye recoloring, scroll-wheel range adjustment, redstone-strength behavior, and contraption culling (assemble the spotlight into a contraption, look away until the hull leaves the frustum — the beam must stay visible). For the audio: bind a speaker to a microphone, power the speaker with redstone, then make a noise — the relay must replay it, and must stop the moment the speaker loses power (and start again when it regains it, with no reliance on any cached state). Change `microphoneRange` and reload the config (config screen or `/reload`) and confirm the new radius applies to an already-placed microphone without re-placing it. Then assemble both into a contraption — the relay must keep working, and the replayed sound must come from where the speaker has moved to, not from where it was assembled (a wrong transform shows up as silence or as a beam of sound near the world origin). Disassembling must hand the pair back to their block entities, with no double relay in between, and the disassembled speaker must again require redstone. For grouping: bind a microphone to four speakers, two of them adjacent and two far apart, and confirm the adjacent pair produces one replay at their midpoint with the summed volume rather than two. Assembling from commands needs a nudge: a mechanical bearing only tries to assemble on a speed change, and a bearing placed into an already spinning network never sees one — place the rig first and the motor last (or break and re-place the motor). For the cold spark machine: place it, wrench-turn all four sides (the control face and its value box must travel with it, and the fuel already in the slot must survive the turn), set the spray height with the value box, then feed the slot — from a side, where a funnel works, and from the lid, where a funnel on top must find nothing to insert into. Pulse it with redstone: one shot per rising edge, one fuel per shot, and nothing at all with an empty slot. Hold the line high — it must fire once and then stay quiet rather than re-firing every two seconds; a signal arriving during the two seconds must be ignored rather than queued; a machine placed beside an already-powered line must not fire until that line drops and rises again. The spray itself has no test but the eye: stand back and fire it — a fountain of distinct white sparks should rise to about the configured height and fall back, with the last sparks still landing just after the two seconds are up. Nothing should be drawn while the machine is idle, and the sparks must stay put when the camera moves (they are world geometry, not a screen effect).
 - **Recipes are datagen output**, not hand-written data: `ShiningStageRecipeProvider` (registered on `GatherDataEvent` from the mod constructor) builds every item's recipe and `runData` writes them to `src/generated/resources/`. Ingredients are Create/vanilla constants (`AllItems`, `AllBlocks`, `Tags.Items`), so a renamed item is a compile error. The data run keeps its own game directory (`build/run-data`, set in `build.gradle`) instead of sharing `run/`: `run/mods` holds a client shader setup (Iris + Sodium), and loading it under datagen deadlocks mod construction — Sodium's `RenderStateShard` static init in one mod-loading thread against Registrate's `RenderType` static init in the others.
