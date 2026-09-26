@@ -16,6 +16,10 @@ sourceSets.main.resources {
     srcDir('src/generated/resources')
     exclude("**/*.bbmodel")
     exclude("src/generated/**/.cache")
+    // Datagen writes its run cache to src/generated/resources/.cache. Excludes are matched relative
+    // to each source root - the file's path in the copy spec is ".cache/<hash>", not
+    // "src/generated/resources/.cache/<hash>" - so the pattern has to start at the root.
+    exclude(".cache/**")
 }
 
 base {
