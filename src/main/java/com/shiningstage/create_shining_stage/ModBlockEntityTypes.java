@@ -21,4 +21,10 @@ public class ModBlockEntityTypes {
     public static final Supplier<BlockEntityType<SpeakerBlockEntity>> SPEAKER =
         BLOCK_ENTITIES.register("speaker",
             () -> BlockEntityType.Builder.of(SpeakerBlockEntity::new, ModBlocks.SPEAKER.get()).build(null));
+
+    public static final Supplier<BlockEntityType<ColdSparkMachineBlockEntity>> COLD_SPARK_MACHINE =
+        BLOCK_ENTITIES.register("cold_spark_machine",
+            () -> BlockEntityType.Builder
+                .of(ColdSparkMachineBlockEntity::new, ModBlocks.COLD_SPARK_MACHINE.get())
+                .build(null));
 }

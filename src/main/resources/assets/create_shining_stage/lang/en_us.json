@@ -11,6 +11,9 @@
   "block.create_shining_stage.truss.tooltip.1": "The metal frame holding up the stage!",
   "block.create_shining_stage.truss.tooltip.2": "Can be charged by redstone",
   "block.create_shining_stage.position_zero": "Position Zero",
+  "block.create_shining_stage.cold_spark_machine": "Cold Spark Machine",
+  "block.create_shining_stage.cold_spark_machine.spray_height": "Spray Height",
+  "item.create_shining_stage.cold_spark_fuel": "Cold Spark Fuel",
   "create_shining_stage.configuration.microphoneRange": "Microphone Range",
   "create_shining_stage.configuration.speakerClusterRadius": "Speaker Grouping Radius",
   "itemGroup.create_shining_stage": "Create Shining Stage"

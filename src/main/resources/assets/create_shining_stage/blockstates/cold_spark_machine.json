@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "create_shining_stage:block/cold_spark_machine" },
+    "facing=east":  { "model": "create_shining_stage:block/cold_spark_machine", "y": 90 },
+    "facing=south": { "model": "create_shining_stage:block/cold_spark_machine", "y": 180 },
+    "facing=west":  { "model": "create_shining_stage:block/cold_spark_machine", "y": 270 }
+  }
+}

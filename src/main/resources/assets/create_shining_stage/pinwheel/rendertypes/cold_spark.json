@@ -1,0 +1,37 @@
+{
+  "format": "POSITION_TEX_COLOR",
+  "mode": "QUADS",
+  "bufferSize": "TRANSIENT",
+  "sort": false,
+  "affectsCrumbling": false,
+  "outline": false,
+  "layers": [
+    {
+      "type": "veil:shader",
+      "name": "create_shining_stage:cold_spark/cold_spark"
+    },
+    {
+      "type": "minecraft:texture",
+      "texture": "create_shining_stage:textures/particle/cold_spark.png",
+      "blur": false,
+      "mipmap": false
+    },
+    {
+      "type": "minecraft:transparency",
+      "mode": "LIGHTNING"
+    },
+    {
+      "type": "minecraft:cull",
+      "face": "NONE"
+    },
+    {
+      "type": "minecraft:write_mask",
+      "color": true,
+      "depth": false
+    },
+    {
+      "type": "minecraft:depth_test",
+      "mode": "LEQUAL"
+    }
+  ]
+}

@@ -62,6 +62,14 @@ public class ModBlocks {
     public static final Supplier<BlockItem> TRUSS_ITEM =
         ITEMS.register("truss", () -> new BlockItem(TRUSS.get(), new Item.Properties()));
 
+    public static final Supplier<ColdSparkMachineBlock> COLD_SPARK_MACHINE =
+        BLOCKS.register("cold_spark_machine", () -> new ColdSparkMachineBlock(BlockBehaviour.Properties.of()
+            .strength(3.5f)
+            .sound(SoundType.METAL)));
+
+    public static final Supplier<BlockItem> COLD_SPARK_MACHINE_ITEM =
+        ITEMS.register("cold_spark_machine", () -> new BlockItem(COLD_SPARK_MACHINE.get(), new Item.Properties()));
+
     public static final Supplier<PositionZeroBlock> POSITION_ZERO =
         BLOCKS.register("position_zero", () -> new PositionZeroBlock(BlockBehaviour.Properties.of()
             .strength(3.5f)

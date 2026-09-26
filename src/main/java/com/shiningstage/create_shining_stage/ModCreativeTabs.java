@@ -25,6 +25,8 @@ public class ModCreativeTabs {
                 output.accept(new ItemStack(ModBlocks.SPEAKER_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.TRUSS_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.POSITION_ZERO_ITEM.get()));
+                output.accept(new ItemStack(ModBlocks.COLD_SPARK_MACHINE_ITEM.get()));
+                output.accept(new ItemStack(ModItems.COLD_SPARK_FUEL.get()));
             })
             .build());
 }

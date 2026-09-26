@@ -40,6 +40,90 @@ SpotlightBeams (duck interface) + ContraptionMixin (client-only) ──► cache
   └─ Contraption#readNBT TAIL scans the structure once and stores its spotlights; the culling query
      then costs one interface call + list iteration (empty list for contraptions without spotlights)
 
+ColdSparkMachineBlock (HorizontalDirectionalBlock + IBE + Create's IWrenchable)
+  └─► ColdSparkMachineBlockEntity (Create SmartBlockEntity)
+       ├─ plain full cube (cube_all) — no shape override, no noOcclusion; FACING is the *control face*,
+       │  which is all the four-way mounting now means: the value box follows it, the model does not
+       ├─ rotation is free: Create's IWrenchable default steps any state carrying HORIZONTAL_FACING a
+       │  quarter turn on a vertical face, so no rotate code here (HorizontalDirectionalBlock's own
+       │  rotate/mirror are the structure-block path and never run for a wrench)
+       ├─ addBehaviours: ScrollValueBehaviour "spray_height" (MIN/MAX/DEFAULT = 1/16/4) on
+       │  ColdSparkMachineValueBoxTransform (Sided, active on the FACING face — the spotlight's pattern)
+       ├─ one SmartInventory slot (fuel-only predicate) exposed as Capabilities.ItemHandler.BLOCK on the
+       │  four horizontal faces only — context.getAxis().isHorizontal(), null for UP/DOWN and for the
+       │  side-less query, so a funnel on the lid has nothing to feed; registered from
+       │  ColdSparkMachineBlockEntity.registerCapabilities (RegisterCapabilitiesEvent)
+       ├─ shot: a rising redstone edge while idle spends one fuel and sets SPRAY_DURATION (3s of ticks).
+       │  The line is sampled every tick, spraying or not, and the sample *is* the edge: a signal during
+       │  the three seconds is swallowed rather than queued, so a held line gives exactly one shot and
+       │  the next needs a low-then-high again, and the spray can never be extended or restarted. The
+       │  first sample after placement/load is a baseline, not an edge — a machine coming up beside a
+       │  live line stays idle
+       ├─ playerWillDestroy drops the slot (not onRemove: assembly also clears the block out of the level)
+       └─ NBT "Inventory" + "SprayTicks" (save-only, the server's own countdown) + "SprayStartTick"/
+          "SpraySerial" (synced). A shot spends one fuel and calls sendData().
+
+ColdSparkMachineRenderer (client BlockEntityRenderer)
+  └─ the spray: SPARK_COUNT camera-facing quads thrown along a parabola. NOT a particle system — no
+     per-spark object, no client tick, no simulation, and nothing in ParticleEngine. Design invariants:
+     ├─ a spark's whole life is a closed form of "how long ago did the shot start", so the client runs
+     │  its own clock off the synced SprayStartTick and needs no per-tick updates; a client joining
+     │  mid-shot draws the sparks still in the air
+     ├─ a spark burns at BRIGHTNESS for its whole rise: there is no fade-in, and the only thing that
+     │  dims it is its own descent, so opacity never decreases before the apex. A fade-in cannot be
+     │  localised to one spark either — sparks are born continuously through the shot, so some would
+     │  always be mid-ramp and the column would look permanently soft
+     ├─ a spark only *rises*: it dies FALL_DISTANCE (0.75) blocks past its apex instead of riding the
+     │  parabola back to the nozzle. The drop at the death point is exactly FALL_DISTANCE by
+     │  construction, since ½·G·(2·FALL_DISTANCE/G) = FALL_DISTANCE, and the fade-out is spent inside
+     │  that descent — so the spray reads as a fountain that stops in the air rather than as an arc of
+     │  dots raining back down through itself. Note the base of the column still looks empty for a
+     │  different reason: sparks are *born* there, at the nozzle plane, so birth is spread over the
+     │  block below the nozzle rather than all of them starting at the mouth
+     ├─ each sprite is rolled to point the way its spark was *fired*, not the way it is currently
+     │  moving: the launch direction is fixed at birth, so a spark keeps the orientation it left the
+     │  nozzle at instead of slowly tumbling as gravity turns its velocity. The pose carries that
+     │  direction into the world (which is what makes it right on a contraption), and there it is
+     │  projected onto the camera's screen axes; the projection is normalised rather than passed
+     │  through an arctangent, so the roll costs a handful of multiplies and no trigonometry. Being
+     │  camera-facing, a quad has exactly *one* rotation axis — the view axis — so rolling is just
+     │  spinning the local right/up basis about it, which keeps the quad in the screen plane (their
+     │  cross product is unchanged) and mirrors nothing, leaving corner winding and UVs alone.
+     │  Degenerate case: fired straight at or away from the camera there is no on-screen direction, so
+     │  the sprite stays upright rather than rolling on noise. Magnitude: the tilt is the launch
+     │  direction's angle from vertical, i.e. atan(LATERAL_SPREAD × [0.5, 1.5]) — only ±1.7°..5.1°,
+     │  because the cone is deliberately narrow. It is therefore invisible on a round sprite and needs
+     │  an elongated one to read at all; widen LATERAL_SPREAD (which also widens the cone) or add a
+     │  decorrelated per-spark roll if a stronger lean is ever wanted
+     ├─ randomness is hash(machine pos, shot serial, spark index) — a RandomSource can only be walked
+     │  forward, so it cannot answer "spark 137" and would give each client a different fountain
+     ├─ one QUADS buffer, one draw call, zero per-frame allocation (scratch matrix/vectors are fields)
+     ├─ billboards: the camera's right/up are mapped into the pose's local space through the *inverse
+     │  pose*, so one inversion per machine covers every spark and contraption rotation comes out right.
+     │  Sprite UVs follow vanilla's own camera-facing quad (SingleQuadParticle.renderRotatedQuad): the
+     │  camera-up corners take V=0, since V runs 0 at the sprite's top row. Inverting that pair draws
+     │  every spark upside down, which a vertically symmetric sprite hides completely — as the first
+     │  placeholder did, so the bug only surfaced once real art went in
+     ├─ additive blending is order-independent, so nothing is sorted; no depth write means overlapping
+     │  sparks cannot depth-cull each other
+     ├─ the sprite is this mod's own, at
+     │  src/main/resources/assets/create_shining_stage/textures/particle/cold_spark.png; the render
+     │  type JSON names it as a full path, so recolouring or reshaping the spray is an art edit there
+     │  and nothing else. It is a 2x12 vertical streak (near-white at the top row, warm orange at the
+     │  bottom, binary alpha), drawn with GL_NEAREST, which suits a hard-edged sprite. The streak
+     │  orientation is deliberate: V=0 is the sprite's top row and also the end the roll points along
+     │  the launch direction, so the white *leading* tip leads and the orange tail trails. Keep at
+     │  least one axis elongated — the roll is only a few degrees (see below), so a round or square
+     │  sprite throws that information away and the spray reads as a field of dots
+     ├─ own Veil program (pinwheel/shaders/program/cold_spark) + own render type
+     │  (pinwheel/rendertypes/cold_spark.json), for the same reason the beam has one: a shader pack
+     │  replaces vanilla's shader getters, so a vanilla-drawn spark would be shaded as a lit surface
+     ├─ the render type is resolved lazily on first draw, because BE renderers are constructed while
+     │  the reload carrying Veil's render types is still in flight; a failure is logged once, not thrown
+     │  (a renderer that throws takes the game down with it)
+     └─ culling: shouldRenderOffScreen (a 16-block spray can outlive its section), getViewDistance, a
+        render bounding box covering the column, and shouldRender false unless sparks are in the air
+
 MicrophoneBlock / SpeakerBlock (HorizontalDirectionalBlock + IBE) ──► SoundRelayHandler (server only)
   ├─ binding: right-click a microphone with a speaker item (BOUND_MIC data component), placing the
   │  speaker registers both directions; breaks unregister the other end
@@ -60,6 +144,16 @@ MicrophoneBlock / SpeakerBlock (HorizontalDirectionalBlock + IBE) ──► Soun
 ```
 
 Key pattern: **game logic in the block/BE, all visuals in the client renderer**. There is no custom networking — `ScrollValueBehaviour` handles range sync, and `notifyUpdate()` syncs color via the standard BE client packet.
+
+Storage blocks expose NeoForge's item handler capability: `event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type, (be, context) -> …)` from a static `registerCapabilities(RegisterCapabilitiesEvent)` wired in the mod constructor, so a funnel, chute, arm or pipe sees the same handler without the block owning any I/O code. What a slot accepts is the `SmartInventory` stack predicate (`isItemValid`) — Create's `SmartInventory` is what makes "fuel only" one predicate instead of a per-route check. Which *faces* have an inventory is the provider's `context`, and returning `null` leaves that face with no capability at all: the cold spark machine allows `context.getAxis().isHorizontal()` only, so its lid refuses a funnel instead of feeding it. A side-gated provider must null-check the context — a side-less query (`getCapability(cap, pos, null)`) passes `null`, and Create's own side-gated inventories answer that with "no handler".
+
+Two ways to get a Veil-drawn render type, both in use: the spotlight beam builds it in code (`RenderType.create` + `VeilRenderBridge.shaderState`) because it needs no texture, and the cold spark spray declares it in JSON (`assets/<ns>/pinwheel/rendertypes/<name>.json`, fetched with `VeilRenderType.get(id)`) because it needs a texture — vanilla's texture shards are `protected` and not reachable from mod code. The JSON's schema is `format`/`mode`/`bufferSize`/`sort`/`affectsCrumbling`/`outline` plus `layers`, whose types are `minecraft:texture` (`texture` is a full `.png` path, plus optional `blur`/`mipmap`), `minecraft:transparency` (`mode: ADDITIVE|LIGHTNING|TRANSLUCENT|…`), `minecraft:cull` (`face: NONE`), `minecraft:write_mask` (`color`/`depth`) and `veil:shader` (`name` = the program id). Resolve such a render type lazily on first draw, never in the renderer constructor: block entity renderers are built while the reload that carries Veil's render types is still in flight.
+
+**Two traps in that JSON, both of which silently render a plain white quad instead of the sprite:**
+
+- **`ADDITIVE` is `blendFunc(ONE, ONE)`** — vanilla's `ADDITIVE_TRANSPARENCY` discards the source alpha completely. Anything whose fade lives in alpha (a sprite's shape, a per-vertex fade) is then invisible, and because additive blending also ignores darkness, a sprite whose transparent pixels are white RGB paints its whole quad white. Use **`LIGHTNING`** (`blendFunc(SRC_ALPHA, ONE)`) for alpha-modulated additive glow. Only `LIGHTNING`/`GLINT`/`CRUMBLING`/`TRANSLUCENT` respect alpha; `ADDITIVE` does not.
+- **Keep transparent sprite pixels black.** Under any blend that ignores or under-weights alpha, white RGB in transparent pixels adds white to the frame. Additive particle atlases conventionally store black there; do the same so the sprite cannot paint its bounding square.
+- **`blur`/`mipmap`** decide GL filtering: `true`/`true` gives `GL_LINEAR_MIPMAP_LINEAR`, i.e. the sprite is resampled and softened; `false`/`false` gives `GL_NEAREST`, which keeps the sprite's own pixels crisp. Veil's `TextureLayer` builds `new TextureStateShard(location, blur, blur)` — the `mipmap` field is dropped and `blur` is passed twice — so `"blur"` is the one that matters. Which to pick depends on the sprite: nearest keeps a hard-edged sprite sharp, but cannot smooth a soft one, and at small on-screen sizes *no* filtering can save a shape that only covers a few pixels — size it so it covers enough pixels to read, then choose the filter.
 
 ## Key Directories
 
@@ -110,6 +204,9 @@ No lint/format tasks are configured (no Spotless/Checkstyle).
 - `src/main/java/.../CreateShiningStage.java` — mod entry point (`@Mod`), all DeferredRegister wiring
 - `.../SpotlightBlock.java` / `SpotlightBlockEntity.java` / `SpotlightRenderer.java` — the full content implementation
 - `.../MicrophoneBlock.java` / `MicrophoneBlockEntity.java` / `SpeakerBlock.java` / `SpeakerBlockEntity.java` / `SoundRelayHandler.java` — the sound relay (server side)
+- `.../ColdSparkMachineBlock.java` / `ColdSparkMachineBlockEntity.java` / `ColdSparkMachineValueBoxTransform.java` / `ColdSparkMachineRenderer.java` — the cold spark machine: four-way control face, spray-height panel, one side-fed fuel slot, the redstone-triggered three-second shot, and the spray it draws
+- `src/main/resources/assets/create_shining_stage/pinwheel/rendertypes/cold_spark.json` + `pinwheel/shaders/program/cold_spark/` + `textures/particle/cold_spark.png` — the spray's additive Veil render type, its program, and its sprite (see the render-type paragraph under Key pattern)
+- `.../ModItems.java` — plain items (the cold spark fuel); block items stay next to their blocks in `ModBlocks`
 - `.../MicrophoneMovementBehaviour.java` / `SpeakerMovementBehaviour.java` — Create contraption actors that keep a mounted microphone listening and a mounted speaker playable
 - `.../SpeakerBindingOutliner.java` — client-only; outlines the microphone a held, bound speaker item points at (see the `held:` line above)
 - `.../Config.java` — COMMON spec; holds `MICROPHONE_RANGE` (listening radius, shared by every microphone) and `SPEAKER_CLUSTER_RADIUS` (see Speaker grouping)
@@ -137,5 +234,5 @@ No lint/format tasks are configured (no Spotless/Checkstyle).
 ## Testing & QA
 
 - **No tests exist** (no `src/test`, no game tests, no CI workflows). `runGameTestServer` is configured with the mod namespace enabled if game tests are added later (`@GameTest` in namespace `create_shining_stage`).
-- Practical verification = `.\gradlew.bat build` plus `.\gradlew.bat runClient`: place a Spotlight, check beam rendering, dye recoloring, scroll-wheel range adjustment, redstone-strength behavior, and contraption culling (assemble the spotlight into a contraption, look away until the hull leaves the frustum — the beam must stay visible). For the audio: bind a speaker to a microphone, power the speaker with redstone, then make a noise — the relay must replay it, and must stop the moment the speaker loses power (and start again when it regains it, with no reliance on any cached state). Change `microphoneRange` and reload the config (config screen or `/reload`) and confirm the new radius applies to an already-placed microphone without re-placing it. Then assemble both into a contraption — the relay must keep working, and the replayed sound must come from where the speaker has moved to, not from where it was assembled (a wrong transform shows up as silence or as a beam of sound near the world origin). Disassembling must hand the pair back to their block entities, with no double relay in between, and the disassembled speaker must again require redstone. For grouping: bind a microphone to four speakers, two of them adjacent and two far apart, and confirm the adjacent pair produces one replay at their midpoint with the summed volume rather than two. Assembling from commands needs a nudge: a mechanical bearing only tries to assemble on a speed change, and a bearing placed into an already spinning network never sees one — place the rig first and the motor last (or break and re-place the motor).
+- Practical verification = `.\gradlew.bat build` plus `.\gradlew.bat runClient`: place a Spotlight, check beam rendering, dye recoloring, scroll-wheel range adjustment, redstone-strength behavior, and contraption culling (assemble the spotlight into a contraption, look away until the hull leaves the frustum — the beam must stay visible). For the audio: bind a speaker to a microphone, power the speaker with redstone, then make a noise — the relay must replay it, and must stop the moment the speaker loses power (and start again when it regains it, with no reliance on any cached state). Change `microphoneRange` and reload the config (config screen or `/reload`) and confirm the new radius applies to an already-placed microphone without re-placing it. Then assemble both into a contraption — the relay must keep working, and the replayed sound must come from where the speaker has moved to, not from where it was assembled (a wrong transform shows up as silence or as a beam of sound near the world origin). Disassembling must hand the pair back to their block entities, with no double relay in between, and the disassembled speaker must again require redstone. For grouping: bind a microphone to four speakers, two of them adjacent and two far apart, and confirm the adjacent pair produces one replay at their midpoint with the summed volume rather than two. Assembling from commands needs a nudge: a mechanical bearing only tries to assemble on a speed change, and a bearing placed into an already spinning network never sees one — place the rig first and the motor last (or break and re-place the motor). For the cold spark machine: place it, wrench-turn all four sides (the control face and its value box must travel with it, and the fuel already in the slot must survive the turn), set the spray height with the value box, then feed the slot — from a side, where a funnel works, and from the lid, where a funnel on top must find nothing to insert into. Pulse it with redstone: one shot per rising edge, one fuel per shot, and nothing at all with an empty slot. Hold the line high — it must fire once and then stay quiet rather than re-firing every three seconds; a signal arriving during the three seconds must be ignored rather than queued; a machine placed beside an already-powered line must not fire until that line drops and rises again. The spray itself has no test but the eye: stand back and fire it — a fountain of distinct white sparks should rise to about the configured height and fall back, with the last sparks still landing just after the three seconds are up. Nothing should be drawn while the machine is idle, and the sparks must stay put when the camera moves (they are world geometry, not a screen effect).
 - **Recipes are datagen output**, not hand-written data: `ShiningStageRecipeProvider` (registered on `GatherDataEvent` from the mod constructor) builds every item's recipe and `runData` writes them to `src/generated/resources/`. Ingredients are Create/vanilla constants (`AllItems`, `AllBlocks`, `Tags.Items`), so a renamed item is a compile error. The data run keeps its own game directory (`build/run-data`, set in `build.gradle`) instead of sharing `run/`: `run/mods` holds a client shader setup (Iris + Sodium), and loading it under datagen deadlocks mod construction — Sodium's `RenderStateShard` static init in one mod-loading thread against Registrate's `RenderType` static init in the others.

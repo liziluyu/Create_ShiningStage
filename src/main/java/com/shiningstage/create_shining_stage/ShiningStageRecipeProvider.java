@@ -53,6 +53,8 @@ public class ShiningStageRecipeProvider extends RecipeProvider {
         speaker(output);
         truss(output);
         positionZero(output);
+        coldSparkMachine(output);
+        coldSparkFuel(output);
     }
 
     /**
@@ -132,6 +134,34 @@ public class ShiningStageRecipeProvider extends RecipeProvider {
             .requires(Items.PINK_DYE)
             .unlockedBy("has_paper", has(Items.PAPER))
             .save(output, id("crafting/position_zero"));
+    }
+
+    /**
+     * Sheet-metal cabinet around an electron tube ignition circuit, andesite alloy for the nozzle ring.
+     * Mechanical crafting like the spotlight: the two stage machines are the set's flagship items, and
+     * the 3x3 pattern is what keeps the cabinet readable.
+     */
+    private void coldSparkMachine(RecipeOutput output) {
+        MechanicalCraftingRecipeBuilder.shapedRecipe(ModBlocks.COLD_SPARK_MACHINE_ITEM.get())
+            .key('S', AllItems.STURDY_SHEET)
+            .key('T', AllItems.ELECTRON_TUBE)
+            .key('A', AllItems.ANDESITE_ALLOY)
+            .patternLine(" A ")
+            .patternLine("SAS")
+            .patternLine("STS")
+            .build(output, id("mechanical_crafting/cold_spark_machine"));
+    }
+
+    /**
+     * Powder that throws bright but cold sparks: gunpowder carries the charge, glowstone dust is what
+     * makes it read as light rather than fire.
+     */
+    private void coldSparkFuel(RecipeOutput output) {
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.COLD_SPARK_FUEL.get(), 4)
+            .requires(Items.GUNPOWDER)
+            .requires(Items.GLOWSTONE_DUST)
+            .unlockedBy("has_gunpowder", has(Items.GUNPOWDER))
+            .save(output, id("crafting/cold_spark_fuel"));
     }
 
     private static ResourceLocation id(String path) {

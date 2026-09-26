@@ -30,4 +30,14 @@ WIP...
 
 ## Cold Spark Machine
 
-WIP...
+The cold spark machine is a stage cabinet that shoots a fountain of cold sparks out of its top face. It turns in 90-degree steps with a wrench, which brings the control face — and the value box on it — to whichever side of the stage you are working from.
+
+Its spray height (how far the fountain reaches) is set on that face with the same value box the spotlight uses for its beam length, from 1 to 16 blocks.
+
+Inside is a single slot that takes nothing but Cold Spark Fuel, and it is fed from the sides: the top face is the spray and the bottom is the machine's base, so neither accepts or gives anything. One fuel is spent per shot.
+
+Redstone fires it: a rising signal starts a three-second spray, and the machine ignores the line for those three seconds — a bare flicker of redstone mid-spray is dropped rather than queued. A line held high therefore gives exactly one shot: to fire again, let it drop and rise once more. An unpowered or empty machine simply stays quiet.
+
+The spray itself is a genuine fountain of individual sparks — hundreds of tiny white points thrown up to the configured height, drifting apart as they climb and raining back down. The last sparks are still landing just after the three seconds are over. The sparks are light they make themselves: they are not lit by, and do not light, the world around them.
+
+Each spark's sprite is turned to point along the way it was fired, so a spark that leaves the nozzle leaning outwards stays leaning that way all the way up — the spray reads as a cone thrown outwards rather than as a column of upright dots. The lean is deliberately small, a few degrees at most: it follows the spread of the cone itself, which is narrow. Seeing it at all needs an elongated spark sprite; a round one hides it.

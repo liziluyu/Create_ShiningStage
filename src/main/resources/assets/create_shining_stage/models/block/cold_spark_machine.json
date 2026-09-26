@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "create_shining_stage:block/cold_spark_machine"
+  }
+}
