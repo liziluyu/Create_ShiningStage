@@ -329,9 +329,19 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
             ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
         // A light block has no collision shape, so the one placed here is invisible to this clip: the
         // beam never truncates itself, and the cell stays put on the next poll.
+        //
+        // The step back from the hit is the hit's own face normal, not `facing.getOpposite()`: the two
+        // agree while the beam stays in one space — an axis-aligned ray enters through the face it
+        // came from, so the normal is that direction — but a hit in another structure's chunks is
+        // reported in *that* space (Sable's `BlockGetter#clip` clips inside the hit structure's level
+        // and returns that result untranslated), and the two structures need not share an orientation.
+        // A rotation between them makes this spotlight's facing a direction that means nothing next to
+        // the hull it lit, so "one step back along our facing" lands beside the hit or inside the hull
+        // (where the air check then refuses the write and the beam lights nothing); the normal is the
+        // cell the beam came from by construction, in whichever space the hit lives.
         BlockPos cell = hit.getType() == HitResult.Type.MISS
             ? worldPosition.relative(facing, getRange())
-            : hit.getBlockPos().relative(facing.getOpposite());
+            : hit.getBlockPos().relative(hit.getDirection());
         return cell.equals(worldPosition) ? null : cell;
     }
 
