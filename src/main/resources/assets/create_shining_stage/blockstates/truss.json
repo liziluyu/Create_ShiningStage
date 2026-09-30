@@ -1,5 +1,11 @@
 {
   "variants": {
-    "": { "model": "create_shining_stage:block/truss" }
+    "facade_side=none": { "model": "create_shining_stage:block/truss" },
+    "facade_side=up": { "model": "create_shining_stage:block/truss_facade_up" },
+    "facade_side=down": { "model": "create_shining_stage:block/truss_facade_down" },
+    "facade_side=north": { "model": "create_shining_stage:block/truss_facade_north" },
+    "facade_side=south": { "model": "create_shining_stage:block/truss_facade_south" },
+    "facade_side=west": { "model": "create_shining_stage:block/truss_facade_west" },
+    "facade_side=east": { "model": "create_shining_stage:block/truss_facade_east" }
   }
 }

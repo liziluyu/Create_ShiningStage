@@ -11,6 +11,7 @@
   "block.create_shining_stage.truss.tooltip.1": "支撑舞台的金属结构！",
   "block.create_shining_stage.truss.tooltip.2": "可以被红石充能",
   "block.create_shining_stage.truss.tooltip.3": "对传动杆、齿轮或大齿轮右击即可包覆",
+  "block.create_shining_stage.truss.tooltip.ae2": "对 AE2 线缆右击同样可以包覆",
   "block.create_shining_stage.truss_encased_shaft": "桁架包覆传动杆",
   "block.create_shining_stage.truss_encased_cogwheel": "桁架包覆齿轮",
   "block.create_shining_stage.truss_encased_large_cogwheel": "桁架包覆大齿轮",

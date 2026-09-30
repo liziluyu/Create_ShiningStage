@@ -63,7 +63,7 @@ public class ModBlocks {
             .noOcclusion()));
 
     public static final Supplier<BlockItem> TRUSS_ITEM =
-        ITEMS.register("truss", () -> new BlockItem(TRUSS.get(), new Item.Properties()));
+        ITEMS.register("truss", () -> new TrussBlockItem(TRUSS.get(), new Item.Properties()));
 
     // The truss as a casing: Create's own encased-shaft / encased-cogwheel blocks, told that the
     // casing they wear is this mod's truss. Nothing is subclassed - those blocks already do the

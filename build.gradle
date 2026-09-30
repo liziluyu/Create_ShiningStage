@@ -99,6 +99,14 @@ dependencies {
     // shipped inside sable's jarjar (hence this vendored copy, matching sable_version) and Veil
     // loads its programs from this mod's resources, so nothing else is needed at runtime.
     compileOnly files("libs/veil-neoforge-1.21.1-4.3.2.jar")
+
+    // Applied Energistics 2 - an *optional* runtime neighbour, so this is compileOnly and nothing is
+    // declared in neoforge.mods.toml: the mod loads, and behaves identically, without AE2 installed.
+    // Every AE2 type is confined to Ae2TrussFacade, which is only ever entered behind the
+    // ModList#isLoaded("ae2") guard in TrussBlockItem, so no AE2 class is loaded when it is absent.
+    // The Modrinth repo is already in settings.gradle; AE2's own pom declares no dependencies, so no
+    // transitive resolution happens either. In the dev runtime AE2 comes from run/mods, not from here.
+    compileOnly "maven.modrinth:ae2:${ae2_version}"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

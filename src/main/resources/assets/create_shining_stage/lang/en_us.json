@@ -11,6 +11,7 @@
   "block.create_shining_stage.truss.tooltip.1": "The metal frame holding up the stage!",
   "block.create_shining_stage.truss.tooltip.2": "Can be charged by redstone",
   "block.create_shining_stage.truss.tooltip.3": "Right-click a shaft, cogwheel or large cogwheel to encase it",
+  "block.create_shining_stage.truss.tooltip.ae2": "Right-click an AE2 cable to encase it too",
   "block.create_shining_stage.truss_encased_shaft": "Truss-encased Shaft",
   "block.create_shining_stage.truss_encased_cogwheel": "Truss-encased Cogwheel",
   "block.create_shining_stage.truss_encased_large_cogwheel": "Truss-encased Large Cogwheel",
