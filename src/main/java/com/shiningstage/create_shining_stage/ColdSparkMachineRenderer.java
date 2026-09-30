@@ -195,18 +195,22 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
         float fastest = 1f + SPEED_VARIATION;
         double reach = 6.0 * LATERAL_SPREAD * fastest * fastest * be.getSprayHeight() + SPARK_SIZE
             + BIRTH_RADIUS;
-        // The spray only leaves through the top, but the box is grown *symmetrically* so its centre
-        // stays on the block. Sable decides which physics structure a block entity belongs to from this
-        // box's centre (it redirects ClientHooks.isBlockEntityRendererVisible and resolves the
-        // containing sub-level from there), so a box whose centre rode up with the fountain would stop
-        // being found as soon as the spray reached past the edge of the ship — and the whole spray
-        // would then be culled, since the untransformed plot-space box is nowhere near the camera.
-        // Costing a little overdraw to keep the centre put is what makes the machine work on a ship.
+        // Grown symmetrically sideways, which keeps the box centred on the block in the two axes Sable
+        // cares about. Sable redirects ClientHooks.isBlockEntityRendererVisible and resolves which
+        // physics structure a block entity belongs to from this box's centre — but it resolves it
+        // through getContainingClient(Position), which floors the centre to a **chunk column** and
+        // ignores Y entirely. Only x and z are read, and a plot slot is 2^7 = 128 chunks = 2048 blocks
+        // wide with the structure anchored at the slot's own centre (SubLevelAssemblyHelper moves it to
+        // plot.getCenterBlock()), so the centre cannot leave the plot through any reach this block has.
+        // The vertical growth is therefore free to follow the spray, as it does below; the sideways
+        // symmetry is what actually matters, and it is what keeps a horizontally-aimed beam honest too.
         //
         // The block's own box tops out at y = 1, so the distance to grow it is measured from there up
         // to the tip of the tallest spark, which starts at the nozzle rather than at the block's roof.
         double up = NOZZLE_Y + be.getSprayHeight() + SPARK_SIZE - 1.0;
-        return new AABB(be.getBlockPos()).inflate(reach, up, reach);
+        return new AABB(be.getBlockPos())
+            .expandTowards(0, up, 0)
+            .inflate(reach, 0, reach);
     }
 
     @Override
