@@ -95,6 +95,15 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
     public SpotlightRenderer(BlockEntityRendererProvider.Context context) {
     }
 
+    /**
+     * Keeps the beam in the global block entity pass, so it is not tied to its own section being
+     * visible — the beam reaches MAX_RANGE past the block, and the section it hangs in may leave the
+     * frustum while the beam itself is still on screen.
+     *
+     * <p>It does not exempt the beam from the frustum test: NeoForge's {@code LevelRenderer} patch runs
+     * {@code ClientHooks.isBlockEntityRendererVisible} over both the global and the ordinary pass, so
+     * the flag says nothing about whether the beam survives; {@link #getRenderBoundingBox} does.
+     */
     @Override
     public boolean shouldRenderOffScreen(SpotlightBlockEntity be) {
         return true;
@@ -105,11 +114,35 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
         return 256;
     }
 
+    /**
+     * The beam's culling box: the emitter cell grown MAX_RANGE along the beam, plus the frustum's own
+     * divergence at that length ({@link #HALF_ANGLE_TAN} at full spread), so the drawn beam is inside it
+     * for every signal level.
+     *
+     * <p>Sable resolves which physics structure a block entity belongs to from this box's centre
+     * ({@code ClientHooks.isBlockEntityRendererVisible} → {@code Sable.HELPER.getContainingClient}),
+     * and frustum-tests the box through that structure's pose; a centre that resolves to no structure
+     * leaves the box in raw plot coordinates, millions of blocks from the camera, where it is culled
+     * for good. So the box is grown both ways along the beam and the centre stays on the block: which
+     * structure answers for a ship's spotlight then cannot depend on the facing, the range, or where on
+     * the hull the block was mounted.
+     *
+     * <p>Measured against Sable 2.0.5 the one-way box could not in fact escape —
+     * {@code getContainingClient(Position)} floors the centre to a chunk column and ignores Y, and a
+     * plot spans 2^7 chunks with the structure planted at the slot's centre ({@code LevelPlot}
+     * {@code getCenterBlock}), so 1024 blocks lie between a centre and the nearest unallocated slot,
+     * where a beam can drag it at most MAX_RANGE / 2 — so this is symmetry for its own sake rather than
+     * a repair, and it matches what {@link ColdSparkMachineRenderer#getRenderBoundingBox} keeps. It
+     * costs culling work only: the beam itself still follows the live range and the raycast below.
+     */
     @Override
     public AABB getRenderBoundingBox(SpotlightBlockEntity be) {
         Vec3i normal = be.getBlockState().getValue(DirectionalBlock.FACING).getNormal();
+        Vec3 axis = Vec3.atLowerCornerOf(normal).scale(SpotlightBlockEntity.MAX_RANGE);
         return new AABB(be.getBlockPos())
-            .expandTowards(Vec3.atLowerCornerOf(normal).scale(SpotlightBlockEntity.MAX_RANGE))
+            .expandTowards(axis)
+            // Opposite side, purely to hold the centre: nothing is drawn there.
+            .expandTowards(axis.scale(-1))
             .inflate(TOP_HALF + SpotlightBlockEntity.MAX_RANGE * HALF_ANGLE_TAN);
     }
 
