@@ -23,10 +23,13 @@ public class CreateShiningStage {
         ModBlocks.ITEMS.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
         ModBlockEntityTypes.BLOCK_ENTITIES.register(modEventBus);
+        ModMenuTypes.MENU_TYPES.register(modEventBus);
         ModCreativeTabs.CREATIVE_TABS.register(modEventBus);
         ModDataComponents.COMPONENTS.register(modEventBus);
 
         modEventBus.addListener(ColdSparkMachineBlockEntity::registerCapabilities);
+        modEventBus.addListener(TrussBlock::registerEncasing);
+        modEventBus.addListener(TrussBlock::addValidBlocks);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::gatherData);
         NeoForge.EVENT_BUS.addListener(SoundRelayHandler::onAtPosition);

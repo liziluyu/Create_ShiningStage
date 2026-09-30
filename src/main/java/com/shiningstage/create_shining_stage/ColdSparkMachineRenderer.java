@@ -89,6 +89,13 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
      */
     static final float SPARK_SIZE = 0.16f;
     /**
+     * Block-local y the sparks are launched from: the machine's top face, which is where its nozzle is.
+     * Taken from the model's height rather than written as 1, because the cabinet stands
+     * {@link ColdSparkMachineBlock#MODEL_HEIGHT_PX}/16 blocks tall — the whole fountain would otherwise
+     * start a quarter block below the lip it is supposed to pour over.
+     */
+    private static final float NOZZLE_Y = ColdSparkMachineBlock.MODEL_HEIGHT_PX / 16f;
+    /**
      * Cells in the spray sprite, stacked top to bottom, each as tall as it is wide (so three cells
      * make a 16x48 image). A spark is drawn from one cell at a time — the strip is not looped by the
      * atlas, the spark's own age picks the cell — which is what gives it a beginning, a middle and an
@@ -195,7 +202,11 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
         // being found as soon as the spray reached past the edge of the ship — and the whole spray
         // would then be culled, since the untransformed plot-space box is nowhere near the camera.
         // Costing a little overdraw to keep the centre put is what makes the machine work on a ship.
-        return new AABB(be.getBlockPos()).inflate(reach, be.getSprayHeight() + SPARK_SIZE, reach);
+        //
+        // The block's own box tops out at y = 1, so the distance to grow it is measured from there up
+        // to the tip of the tallest spark, which starts at the nozzle rather than at the block's roof.
+        double up = NOZZLE_Y + be.getSprayHeight() + SPARK_SIZE - 1.0;
+        return new AABB(be.getBlockPos()).inflate(reach, up, reach);
     }
 
     @Override
@@ -323,7 +334,7 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
             float b = Mth.lerp(warmth, COOL_B, HOT_B);
             float size = SPARK_SIZE * (1f + SIZE_VARIATION * (unit(h2 >>> 24) * 2f - 1f));
 
-            quad(vc, pose, 0.5f + x, 1f + y, 0.5f + z, size, r, g, b, alpha, cos, sin,
+            quad(vc, pose, 0.5f + x, NOZZLE_Y + y, 0.5f + z, size, r, g, b, alpha, cos, sin,
                 spriteCell(age, riseTicks));
         }
     }

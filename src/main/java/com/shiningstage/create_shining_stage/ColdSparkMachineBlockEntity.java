@@ -11,6 +11,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
@@ -26,7 +30,7 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
  * signal that arrives mid-spray is swallowed and the spray cannot be extended or restarted. A held
  * line therefore gives exactly one shot, and the next one needs the line to go low and rise again.
  */
-public class ColdSparkMachineBlockEntity extends SmartBlockEntity {
+public class ColdSparkMachineBlockEntity extends SmartBlockEntity implements MenuProvider {
     /** Spray height bounds, in blocks between the machine's top face and the fountain's tip. */
     public static final int MIN_SPRAY_HEIGHT = 1;
     public static final int MAX_SPRAY_HEIGHT = 16;
@@ -166,6 +170,22 @@ public class ColdSparkMachineBlockEntity extends SmartBlockEntity {
     /** Spray height in blocks (MIN_SPRAY_HEIGHT..MAX_SPRAY_HEIGHT), adjusted via the front value box. */
     public int getSprayHeight() {
         return sprayHeight == null ? DEFAULT_SPRAY_HEIGHT : sprayHeight.getValue();
+    }
+
+    /**
+     * Handing the machine to the GUI. The position and update tag that let the client rebuild this menu
+     * are written by {@code SmartBlockEntity#sendToMenu}, which the block passes to
+     * {@code Player#openMenu}.
+     */
+    @Override
+    public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
+        return ColdSparkMachineMenu.create(id, inventory, this);
+    }
+
+    /** The GUI's title, and the block's own name — one string, so it is already translated. */
+    @Override
+    public Component getDisplayName() {
+        return Component.translatable("block.create_shining_stage.cold_spark_machine");
     }
 
     public SmartInventory getInventory() {

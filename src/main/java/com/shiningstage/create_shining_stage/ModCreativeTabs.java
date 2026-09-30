@@ -24,6 +24,9 @@ public class ModCreativeTabs {
                 output.accept(new ItemStack(ModBlocks.MICROPHONE_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.SPEAKER_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.TRUSS_ITEM.get()));
+                output.accept(new ItemStack(ModBlocks.TRUSS_ENCASED_SHAFT_ITEM.get()));
+                output.accept(new ItemStack(ModBlocks.TRUSS_ENCASED_COGWHEEL_ITEM.get()));
+                output.accept(new ItemStack(ModBlocks.TRUSS_ENCASED_LARGE_COGWHEEL_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.POSITION_ZERO_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.COLD_SPARK_MACHINE_ITEM.get()));
                 output.accept(new ItemStack(ModItems.COLD_SPARK_FUEL.get()));
