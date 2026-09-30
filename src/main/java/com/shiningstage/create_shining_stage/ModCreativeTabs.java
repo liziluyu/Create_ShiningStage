@@ -24,9 +24,12 @@ public class ModCreativeTabs {
                 output.accept(new ItemStack(ModBlocks.MICROPHONE_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.SPEAKER_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.TRUSS_ITEM.get()));
-                output.accept(new ItemStack(ModBlocks.TRUSS_ENCASED_SHAFT_ITEM.get()));
-                output.accept(new ItemStack(ModBlocks.TRUSS_ENCASED_COGWHEEL_ITEM.get()));
-                output.accept(new ItemStack(ModBlocks.TRUSS_ENCASED_LARGE_COGWHEEL_ITEM.get()));
+                // The three truss-encased forms stay out of the tab on purpose. They are not separate
+                // content, they are what a shaft/cogwheel becomes when a truss is clipped over it, and
+                // they are not obtainable any other way: loot drops the bare part and pick-block is the
+                // only thing that ever asks for their item. Create lists its own encased variants here
+                // (AllCreativeModeTabs), so this is a deliberate difference, not an oversight - ours
+                // draw the truss's model and would read as three duplicate truss icons in the tab.
                 output.accept(new ItemStack(ModBlocks.POSITION_ZERO_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.COLD_SPARK_MACHINE_ITEM.get()));
                 output.accept(new ItemStack(ModItems.COLD_SPARK_FUEL.get()));
