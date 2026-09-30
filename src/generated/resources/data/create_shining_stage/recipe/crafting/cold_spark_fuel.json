@@ -3,10 +3,16 @@
   "category": "misc",
   "ingredients": [
     {
-      "item": "minecraft:gunpowder"
+      "item": "create:cardboard"
     },
     {
-      "item": "minecraft:glowstone_dust"
+      "tag": "c:nuggets/zinc"
+    },
+    {
+      "tag": "c:nuggets/copper"
+    },
+    {
+      "item": "minecraft:gunpowder"
     }
   ],
   "result": {

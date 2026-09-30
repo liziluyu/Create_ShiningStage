@@ -25,8 +25,8 @@ import net.neoforged.neoforge.common.Tags;
  * is stage equipment, and the sheet keeps the one recipe-shaped tie to Create's progression
  * (obsidian dust, lava, two pressings) instead of competing with its own material ladder. Everything
  * else is the part that particular item is: glass for the lens, a note block for the speaker,
- * amethyst for the microphone capsule, andesite alloy for the framing. The floor marking is the one
- * exception — it is paper tape, not hardware.
+ * amethyst for the microphone capsule, andesite alloy for the framing. Two items are not hardware:
+ * the floor marking is paper tape, and the fuel grain is a cardboard tube of metal turnings.
  *
  * <p>Runs under {@code runData}; the output lands in {@code src/generated/resources}. Datagen rather
  * than hand-written JSON because every ingredient is then a compile-checked Create/vanilla constant,
@@ -38,8 +38,23 @@ public class ShiningStageRecipeProvider extends RecipeProvider {
      * Create's own brass sheet tag ({@code c:plates/brass}), the convention its electron tube recipe
      * uses for iron. NeoForge ships no constant for the plate tags Create declares itself.
      */
-    private static final TagKey<Item> BRASS_PLATES =
-        ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", "plates/brass"));
+    private static final TagKey<Item> BRASS_PLATES = commonItemTag("plates/brass");
+
+    /**
+     * The metal filings the fuel burns, taken by tag so any mod's copper or zinc nugget does:
+     * {@code c:nuggets/*} is what those items declare, and Create's own nuggets are only the two
+     * members it ships. Neither has a NeoForge constant — {@code Tags.Items} stops at the metal-free
+     * {@code c:nuggets} plus gold and iron — so they are spelled out here like the brass sheet. The
+     * cardboard stays Create's item on purpose: no other mod's cardboard is the plate this tube is
+     * wound from.
+     */
+    private static final TagKey<Item> COPPER_NUGGETS = commonItemTag("nuggets/copper");
+    private static final TagKey<Item> ZINC_NUGGETS = commonItemTag("nuggets/zinc");
+
+    /** A {@code c:}-namespaced conventional tag; {@code Tags.Items} carries only some of them. */
+    private static TagKey<Item> commonItemTag(String path) {
+        return ItemTags.create(ResourceLocation.fromNamespaceAndPath("c", path));
+    }
 
     public ShiningStageRecipeProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> registries) {
         super(output, registries);
@@ -153,13 +168,17 @@ public class ShiningStageRecipeProvider extends RecipeProvider {
     }
 
     /**
-     * Powder that throws bright but cold sparks: gunpowder carries the charge, glowstone dust is what
-     * makes it read as light rather than fire.
+     * A cardboard tube packed with metal filings: gunpowder carries the charge, and the zinc and
+     * copper turnings are what burn as white sparks instead of flame. The filings are tagged rather
+     * than named, so a copper or zinc nugget from any mod is accepted.
      */
     private void coldSparkFuel(RecipeOutput output) {
         ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.COLD_SPARK_FUEL.get(), 4)
+            .requires(AllItems.CARDBOARD)
+            .requires(ZINC_NUGGETS)
+            .requires(COPPER_NUGGETS)
             .requires(Items.GUNPOWDER)
-            .requires(Items.GLOWSTONE_DUST)
+            .unlockedBy("has_cardboard", has(AllItems.CARDBOARD))
             .unlockedBy("has_gunpowder", has(Items.GUNPOWDER))
             .save(output, id("crafting/cold_spark_fuel"));
     }
