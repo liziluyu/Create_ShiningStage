@@ -141,6 +141,14 @@ public class MicrophoneBlock extends HorizontalDirectionalBlock implements IBE<M
         if (!state.is(newState.getBlock()) && !level.isClientSide
             && level.getBlockEntity(pos) instanceof MicrophoneBlockEntity be) {
             for (BlockPos speakerPos : List.copyOf(be.getBoundSpeakers())) {
+                // isLoaded first: the speaker may sit in an unloaded chunk, and a block entity read would
+                // load that chunk just to clear one binding. A speaker left bound this way stays silent,
+                // because the relay resolves it through speakerPosition, which finds neither a block
+                // entity nor a live contraption for it — the same outcome as clearing the binding, minus
+                // the chunk load.
+                if (!level.isLoaded(speakerPos)) {
+                    continue;
+                }
                 if (level.getBlockEntity(speakerPos) instanceof SpeakerBlockEntity speaker) {
                     speaker.clearBinding();
                 }

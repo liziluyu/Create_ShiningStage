@@ -170,6 +170,9 @@ public class SoundRelayHandler {
         // of them is still one entry; nothing is played until all of them are in.
         Map<BlockPos, Target> heard = new LinkedHashMap<>();
         if (hasPlaced) {
+            // Deliberately no isLoaded guard here: this set is written by MicrophoneBlockEntity#onLoad and
+            // cleared by its invalidate on chunk unload, so every position in it names a block entity that
+            // is present right now and the read cannot pull a chunk in.
             for (BlockPos micPos : List.copyOf(mics)) {
                 if (!(level.getBlockEntity(micPos) instanceof MicrophoneBlockEntity mic)) {
                     continue;
@@ -276,8 +279,8 @@ public class SoundRelayHandler {
     /**
      * Where a bound speaker is right now, or null when it does not play: a block entity standing in the
      * level, or a contraption's captured speaker, which only its contraption entity can place in the
-     * world. A binding whose position resolves to neither (broken, or carried off by a structure) goes
-     * silent.
+     * world. A binding whose position resolves to neither (broken, carried off by a structure, or sitting
+     * in a chunk that is not loaded) goes silent.
      *
      * <p>A placed speaker additionally has to be redstone-powered. A contraption's is exempt: assembling
      * a structure moves its blocks out of the level, so the speaker's world position is surrounded by the
@@ -288,7 +291,16 @@ public class SoundRelayHandler {
      */
     @Nullable
     private static Vec3 speakerPosition(Level level, BlockPos speakerPos) {
-        if (level.getBlockEntity(speakerPos) instanceof SpeakerBlockEntity) {
+        // A binding may cross any distance, and Level#getBlockEntity would sync-load — even generate — the
+        // speaker's chunk (1.21.1: getChunkAt → getChunk(..., FULL, requireChunk = true)). One sound event
+        // resolves every bound speaker of every microphone that heard it, so without this guard a speaker
+        // parked thousands of blocks away would pull chunks in on every noise. isLoaded is hasChunk with
+        // requireChunk = false, the predicate the beam light poll already relies on
+        // (SpotlightBlockEntity#cellPresent): an unloaded speaker is unreachable for this round, exactly
+        // like a broken one. The mounted lookup below still runs — a contraption's speaker has no chunk of
+        // its own to be loaded.
+        if (level.isLoaded(speakerPos) && level.getBlockEntity(speakerPos) instanceof SpeakerBlockEntity) {
+            // Past the guard the chunk is present, so the signal read is a plain in-memory lookup.
             return level.getBestNeighborSignal(speakerPos) > 0 ? Vec3.atCenterOf(speakerPos) : null;
         }
         Map<BlockPos, MountedSpeaker> speakers = MOUNTED_SPEAKERS.get(level.dimension());

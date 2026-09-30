@@ -109,7 +109,14 @@ public class SpeakerBlock extends HorizontalDirectionalBlock implements IBE<Spea
             warn(player, "block.create_shining_stage.speaker.bind_failed_dimension");
             return;
         }
-        if (!(level.getBlockEntity(mic.pos()) instanceof MicrophoneBlockEntity micBe)) {
+        // The bound microphone may be arbitrarily far away, and Level#getBlockEntity would sync-load —
+        // even generate — the chunk it names. Ask isLoaded first (hasChunk with requireChunk = false, the
+        // same predicate SoundRelayHandler#speakerPosition and the beam light poll use) and let an
+        // unloaded microphone fail the bind with the warning that was written for exactly that case: before
+        // this guard the warning was dead code, because the read itself brought the chunk up and the bind
+        // then "succeeded".
+        if (!level.isLoaded(mic.pos())
+            || !(level.getBlockEntity(mic.pos()) instanceof MicrophoneBlockEntity micBe)) {
             warn(player, "block.create_shining_stage.speaker.bind_failed_unloaded");
             return;
         }
@@ -130,7 +137,12 @@ public class SpeakerBlock extends HorizontalDirectionalBlock implements IBE<Spea
         if (!state.is(newState.getBlock()) && !level.isClientSide
             && level.getBlockEntity(pos) instanceof SpeakerBlockEntity speaker && speaker.getBoundMic() != null) {
             GlobalPos mic = speaker.getBoundMic();
-            if (mic.dimension().equals(level.dimension())
+            // isLoaded first, for the reason given in SoundRelayHandler#speakerPosition: the microphone may
+            // sit in an unloaded chunk, and asking for its block entity would load that chunk just to drop
+            // one position from its set. Skipping is self-consistent — the set keeps a stale position that
+            // the relay already tolerates (it resolves every bound position per event and treats a miss as
+            // silence), so nothing dangles that was not already allowed to.
+            if (mic.dimension().equals(level.dimension()) && level.isLoaded(mic.pos())
                 && level.getBlockEntity(mic.pos()) instanceof MicrophoneBlockEntity micBe) {
                 micBe.removeSpeaker(pos);
             }
