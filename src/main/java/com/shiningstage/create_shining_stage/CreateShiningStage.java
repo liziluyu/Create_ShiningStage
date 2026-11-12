@@ -52,5 +52,7 @@ public class CreateShiningStage {
     private void gatherData(final GatherDataEvent event) {
         event.getGenerator().addProvider(event.includeServer(),
             new ShiningStageRecipeProvider(event.getGenerator().getPackOutput(), event.getLookupProvider()));
+        event.getGenerator().addProvider(event.includeClient(),
+            new PoleModelProvider(event.getGenerator().getPackOutput(), event.getExistingFileHelper()));
     }
 }

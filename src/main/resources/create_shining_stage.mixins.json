@@ -3,6 +3,10 @@
   "minVersion": "0.8",
   "package": "com.shiningstage.create_shining_stage.mixin",
   "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ChunkSerializerMixin",
+    "NbtUtilsMixin"
+  ],
   "client": [
     "EntityCullingMixin",
     "ContraptionMixin"

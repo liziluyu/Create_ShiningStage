@@ -37,6 +37,15 @@ public class ModBlocks {
     public static final Supplier<BlockItem> TRIPOD_ITEM =
         ITEMS.register("tripod", () -> new BlockItem(TRIPOD.get(), new Item.Properties()));
 
+    public static final Supplier<PoleBlock> POLE =
+        BLOCKS.register("pole", () -> new PoleBlock(BlockBehaviour.Properties.of()
+            .strength(3.5f)
+            .sound(SoundType.METAL)
+            .noOcclusion()));
+
+    public static final Supplier<BlockItem> POLE_ITEM =
+        ITEMS.register("pole", () -> new BlockItem(POLE.get(), new Item.Properties()));
+
     public static final Supplier<MicrophoneBlock> MICROPHONE =
         BLOCKS.register("microphone", () -> new MicrophoneBlock(BlockBehaviour.Properties.of()
             .strength(3.5f)

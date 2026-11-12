@@ -67,14 +67,15 @@ public class MicrophoneBlock extends HorizontalDirectionalBlock implements IBE<M
     }
 
     /**
-     * Tripod-exclusive: the cell below the target position must be a tripod part (bottom or pole,
-     * same rule the spotlight mounts with). FACING stays horizontal so the head can face the stage
+     * Stand support: the cell below the target position must be a tripod or pole,
+     * same rule the spotlight mounts with. FACING stays horizontal so the head can face the stage
      * from any side; it points back at the player on placement, like vanilla horizontal blocks.
      */
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         BlockPos pos = context.getClickedPos();
-        if (!(context.getLevel().getBlockState(pos.below()).getBlock() instanceof TripodBlock)) {
+        Block support = context.getLevel().getBlockState(pos.below()).getBlock();
+        if (!(support instanceof TripodBlock || support instanceof PoleBlock)) {
             return null;
         }
         return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
@@ -82,7 +83,8 @@ public class MicrophoneBlock extends HorizontalDirectionalBlock implements IBE<M
 
     @Override
     protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
-        return level.getBlockState(pos.below()).getBlock() instanceof TripodBlock;
+        Block support = level.getBlockState(pos.below()).getBlock();
+        return support instanceof TripodBlock || support instanceof PoleBlock;
     }
 
     @Override
@@ -107,7 +109,7 @@ public class MicrophoneBlock extends HorizontalDirectionalBlock implements IBE<M
         return ModBlockEntityTypes.MICROPHONE.get();
     }
 
-    // Losing the tripod below pops the microphone off, chaining like TripodBlock's poles do.
+    // Losing the tripod or pole below pops the microphone off.
     @Override
     protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock,
                                    BlockPos neighborPos, boolean movedByPiston) {

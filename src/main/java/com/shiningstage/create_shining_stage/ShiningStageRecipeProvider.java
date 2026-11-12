@@ -64,6 +64,7 @@ public class ShiningStageRecipeProvider extends RecipeProvider {
     protected void buildRecipes(RecipeOutput output) {
         spotlight(output);
         tripod(output);
+        pole(output);
         microphone(output);
         speaker(output);
         truss(output);
@@ -98,6 +99,18 @@ public class ShiningStageRecipeProvider extends RecipeProvider {
             .pattern("SAS")
             .unlockedBy("has_sturdy_sheet", has(AllItems.STURDY_SHEET))
             .save(output, id("crafting/tripod"));
+    }
+
+    /** Vertical tripod rods are made from two sturdy-sheet ends and an andesite-alloy core. */
+    private void pole(RecipeOutput output) {
+        ShapedRecipeBuilder.shaped(RecipeCategory.BUILDING_BLOCKS, ModBlocks.POLE_ITEM.get(), 12)
+            .define('S', AllItems.STURDY_SHEET)
+            .define('A', AllItems.ANDESITE_ALLOY)
+            .pattern("S")
+            .pattern("A")
+            .pattern("S")
+            .unlockedBy("has_sturdy_sheet", has(AllItems.STURDY_SHEET))
+            .save(output, id("crafting/pole"));
     }
 
     /**

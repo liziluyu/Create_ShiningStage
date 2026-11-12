@@ -1,0 +1,196 @@
+{
+  "variants": {
+    "north=false,south=false,east=false,west=false,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_center"
+    },
+    "north=false,south=false,east=false,west=false,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_down"
+    },
+    "north=false,south=false,east=false,west=false,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_up"
+    },
+    "north=false,south=false,east=false,west=false,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_up_down"
+    },
+    "north=false,south=false,east=false,west=true,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_west"
+    },
+    "north=false,south=false,east=false,west=true,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_west_down"
+    },
+    "north=false,south=false,east=false,west=true,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_west_up"
+    },
+    "north=false,south=false,east=false,west=true,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_west_up_down"
+    },
+    "north=false,south=false,east=true,west=false,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_east"
+    },
+    "north=false,south=false,east=true,west=false,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_east_down"
+    },
+    "north=false,south=false,east=true,west=false,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_east_up"
+    },
+    "north=false,south=false,east=true,west=false,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_east_up_down"
+    },
+    "north=false,south=false,east=true,west=true,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_east_west"
+    },
+    "north=false,south=false,east=true,west=true,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_east_west_down"
+    },
+    "north=false,south=false,east=true,west=true,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_east_west_up"
+    },
+    "north=false,south=false,east=true,west=true,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_east_west_up_down"
+    },
+    "north=false,south=true,east=false,west=false,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_south"
+    },
+    "north=false,south=true,east=false,west=false,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_south_down"
+    },
+    "north=false,south=true,east=false,west=false,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_south_up"
+    },
+    "north=false,south=true,east=false,west=false,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_south_up_down"
+    },
+    "north=false,south=true,east=false,west=true,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_south_west"
+    },
+    "north=false,south=true,east=false,west=true,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_south_west_down"
+    },
+    "north=false,south=true,east=false,west=true,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_south_west_up"
+    },
+    "north=false,south=true,east=false,west=true,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_south_west_up_down"
+    },
+    "north=false,south=true,east=true,west=false,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_south_east"
+    },
+    "north=false,south=true,east=true,west=false,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_south_east_down"
+    },
+    "north=false,south=true,east=true,west=false,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_south_east_up"
+    },
+    "north=false,south=true,east=true,west=false,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_south_east_up_down"
+    },
+    "north=false,south=true,east=true,west=true,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_south_east_west"
+    },
+    "north=false,south=true,east=true,west=true,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_south_east_west_down"
+    },
+    "north=false,south=true,east=true,west=true,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_south_east_west_up"
+    },
+    "north=false,south=true,east=true,west=true,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_south_east_west_up_down"
+    },
+    "north=true,south=false,east=false,west=false,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north"
+    },
+    "north=true,south=false,east=false,west=false,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_down"
+    },
+    "north=true,south=false,east=false,west=false,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_up"
+    },
+    "north=true,south=false,east=false,west=false,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_up_down"
+    },
+    "north=true,south=false,east=false,west=true,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_west"
+    },
+    "north=true,south=false,east=false,west=true,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_west_down"
+    },
+    "north=true,south=false,east=false,west=true,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_west_up"
+    },
+    "north=true,south=false,east=false,west=true,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_west_up_down"
+    },
+    "north=true,south=false,east=true,west=false,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_east"
+    },
+    "north=true,south=false,east=true,west=false,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_east_down"
+    },
+    "north=true,south=false,east=true,west=false,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_east_up"
+    },
+    "north=true,south=false,east=true,west=false,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_east_up_down"
+    },
+    "north=true,south=false,east=true,west=true,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_east_west"
+    },
+    "north=true,south=false,east=true,west=true,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_east_west_down"
+    },
+    "north=true,south=false,east=true,west=true,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_east_west_up"
+    },
+    "north=true,south=false,east=true,west=true,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_east_west_up_down"
+    },
+    "north=true,south=true,east=false,west=false,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_south"
+    },
+    "north=true,south=true,east=false,west=false,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_south_down"
+    },
+    "north=true,south=true,east=false,west=false,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_south_up"
+    },
+    "north=true,south=true,east=false,west=false,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_south_up_down"
+    },
+    "north=true,south=true,east=false,west=true,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_south_west"
+    },
+    "north=true,south=true,east=false,west=true,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_south_west_down"
+    },
+    "north=true,south=true,east=false,west=true,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_south_west_up"
+    },
+    "north=true,south=true,east=false,west=true,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_south_west_up_down"
+    },
+    "north=true,south=true,east=true,west=false,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_south_east"
+    },
+    "north=true,south=true,east=true,west=false,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_south_east_down"
+    },
+    "north=true,south=true,east=true,west=false,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_south_east_up"
+    },
+    "north=true,south=true,east=true,west=false,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_south_east_up_down"
+    },
+    "north=true,south=true,east=true,west=true,up=false,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_south_east_west"
+    },
+    "north=true,south=true,east=true,west=true,up=false,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_south_east_west_down"
+    },
+    "north=true,south=true,east=true,west=true,up=true,down=false": {
+      "model": "create_shining_stage:block/pole/combined_north_south_east_west_up"
+    },
+    "north=true,south=true,east=true,west=true,up=true,down=true": {
+      "model": "create_shining_stage:block/pole/combined_north_south_east_west_up_down"
+    }
+  }
+}

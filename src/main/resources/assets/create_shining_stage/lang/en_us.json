@@ -2,6 +2,7 @@
   "block.create_shining_stage.spotlight": "Spotlight",
   "block.create_shining_stage.spotlight.max_length": "Max Length",
   "block.create_shining_stage.tripod": "Tripod",
+  "block.create_shining_stage.pole": "Pole",
   "block.create_shining_stage.microphone": "Microphone",
   "block.create_shining_stage.speaker": "Speaker",
   "block.create_shining_stage.speaker.bound": "Speaker bound to microphone",

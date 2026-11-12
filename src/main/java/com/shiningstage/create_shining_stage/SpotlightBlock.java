@@ -94,14 +94,14 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
 
     /**
      * Mount is chosen from the clicked face and never re-evaluated: top-face clicks use the tripod
-     * when present or ground otherwise, bottom-face clicks hang, and side clicks use a side model.
+     * appearance only when placed on a pole, bottom-face clicks hang, and side clicks use a side model.
      */
     private static MountType mountFor(BlockPlaceContext context) {
         Level level = context.getLevel();
         BlockPos pos = context.getClickedPos();
 
         if (context.getClickedFace() == Direction.UP) {
-            return level.getBlockState(pos.below()).getBlock() instanceof TripodBlock
+            return level.getBlockState(pos.below()).getBlock() instanceof PoleBlock
                 ? MountType.TRIPOD : MountType.GROUND;
         }
         if (context.getClickedFace() == Direction.DOWN) {
