@@ -2,6 +2,7 @@ package com.shiningstage.create_shining_stage;
 
 import com.mojang.serialization.MapCodec;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.content.equipment.wrench.IWrenchable;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -23,15 +24,17 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlockEntity> {
+public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlockEntity>, IWrenchable {
     public static final MapCodec<SpotlightBlock> CODEC = simpleCodec(SpotlightBlock::new);
 
-    /** How the spotlight is supported; only affects the model when FACING is horizontal. */
+    /** Ground, hanging, tripod, or one of the two side-connection models. */
     public static final EnumProperty<MountType> MOUNT = EnumProperty.create("mount", MountType.class);
+    public static final DirectionProperty MODEL_FACING = DirectionProperty.create("model_facing", Direction.Plane.HORIZONTAL);
 
     /**
      * Outline/collision shapes, taken from the largest element of each model family
@@ -59,7 +62,7 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
     public SpotlightBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH)
-            .setValue(MOUNT, MountType.GROUND));
+            .setValue(MOUNT, MountType.GROUND).setValue(MODEL_FACING, Direction.NORTH));
     }
 
     @Override
@@ -69,24 +72,29 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, MOUNT);
+        builder.add(FACING, MOUNT, MODEL_FACING);
     }
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         MountType mount = mountFor(context);
-        if (mount == null) {
-            return null;
+        Direction beam = context.getNearestLookingDirection().getOpposite();
+        Direction modelFacing = context.getHorizontalDirection().getOpposite();
+        if (context.getClickedFace().getAxis().isHorizontal()) {
+            Direction side = context.getClickedFace();
+            if (modelFacing.getAxis() == side.getAxis()) {
+                modelFacing = side.getClockWise();
+            }
+            Direction localEastWorld = modelFacing.getClockWise();
+            mount = localEastWorld == side.getOpposite() ? MountType.SIDE_LEFT : MountType.SIDE_RIGHT;
+            beam = modelFacing;
         }
-        return defaultBlockState().setValue(FACING, context.getNearestLookingDirection().getOpposite())
-            .setValue(MOUNT, mount);
+        return defaultBlockState().setValue(FACING, beam).setValue(MOUNT, mount).setValue(MODEL_FACING, modelFacing);
     }
 
     /**
-     * Mount is chosen from the support at placement time and never re-evaluated afterwards:
-     * top-face clicks sit on the block below (tripod if it is one, ground otherwise), bottom-face
-     * clicks hang from the block above. Side clicks fall back to whatever support exists around the
-     * target position; with no support at all placement is denied (the spotlight cannot float).
+     * Mount is chosen from the clicked face and never re-evaluated: top-face clicks use the tripod
+     * when present or ground otherwise, bottom-face clicks hang, and side clicks use a side model.
      */
     private static MountType mountFor(BlockPlaceContext context) {
         Level level = context.getLevel();
@@ -99,16 +107,26 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
         if (context.getClickedFace() == Direction.DOWN) {
             return MountType.HANG;
         }
-        if (level.getBlockState(pos.below()).getBlock() instanceof TripodBlock) {
-            return MountType.TRIPOD;
+        return MountType.SIDE_LEFT;
+    }
+
+    @Override
+    public BlockState getRotatedBlockState(BlockState state, Direction targetedFace) {
+        Direction beam = state.getValue(FACING);
+        Direction modelFacing = state.getValue(MODEL_FACING);
+        MountType mount = state.getValue(MOUNT);
+        if (mount == MountType.SIDE_LEFT || mount == MountType.SIDE_RIGHT) {
+            if (beam == modelFacing) beam = Direction.UP;
+            else if (beam == Direction.UP) beam = modelFacing.getOpposite();
+            else if (beam == modelFacing.getOpposite()) beam = Direction.DOWN;
+            else beam = modelFacing;
+        } else if (beam.getAxis().isHorizontal()) {
+            beam = beam.getClockWise();
+            modelFacing = modelFacing.getClockWise();
+        } else {
+            modelFacing = modelFacing.getClockWise();
         }
-        if (level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP)) {
-            return MountType.GROUND;
-        }
-        if (level.getBlockState(pos.above()).isFaceSturdy(level, pos.above(), Direction.DOWN)) {
-            return MountType.HANG;
-        }
-        return null;
+        return state.setValue(FACING, beam).setValue(MODEL_FACING, modelFacing);
     }
 
     @Override
@@ -184,7 +202,9 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
     public enum MountType implements StringRepresentable {
         TRIPOD("tripod"),
         GROUND("ground"),
-        HANG("hang");
+        HANG("hang"),
+        SIDE_LEFT("side_left"),
+        SIDE_RIGHT("side_right");
 
         private final String name;
 
