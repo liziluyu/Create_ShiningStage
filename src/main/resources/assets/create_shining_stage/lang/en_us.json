@@ -1,5 +1,6 @@
 {
   "block.create_shining_stage.spotlight": "Spotlight",
+  "block.create_shining_stage.fill_light": "Fill Light",
   "block.create_shining_stage.spotlight.max_length": "Max Length",
   "block.create_shining_stage.tripod": "Tripod",
   "block.create_shining_stage.pole": "Pole",
@@ -21,6 +22,7 @@
   "block.create_shining_stage.cold_spark_machine.spray_height": "Spray Height",
   "item.create_shining_stage.cold_spark_fuel": "Cold Spark Fuel",
   "create_shining_stage.configuration.microphoneRange": "Microphone Range",
+  "create_shining_stage.configuration.fillLightRange": "Fill Light Range",
   "create_shining_stage.configuration.speakerClusterRadius": "Speaker Grouping Radius",
   "itemGroup.create_shining_stage": "Create Shining Stage"
 }

@@ -22,6 +22,10 @@ public class Config {
             "microphone.")
         .defineInRange("microphoneRange", 16, 0, 64);
 
+    public static final ModConfigSpec.IntValue FILL_LIGHT_RANGE = BUILDER
+        .comment("Maximum fill light range in blocks.")
+        .defineInRange("fillLightRange", 32, 1, 32);
+
     /**
      * Speakers this close together that heard the same sound are replayed as one source at their common
      * centre, with their volumes summed; see SoundRelayHandler#flush. Speakers further apart stay

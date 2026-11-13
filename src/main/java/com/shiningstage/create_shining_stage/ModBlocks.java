@@ -28,6 +28,13 @@ public class ModBlocks {
     public static final Supplier<BlockItem> SPOTLIGHT_ITEM =
         ITEMS.register("spotlight", () -> new BlockItem(SPOTLIGHT.get(), new Item.Properties()));
 
+    public static final Supplier<FillLightBlock> FILL_LIGHT =
+        BLOCKS.register("fill_light", () -> new FillLightBlock(BlockBehaviour.Properties.of()
+            .strength(3.5f).sound(SoundType.METAL).noOcclusion()
+            .lightLevel(state -> state.getValue(FillLightBlock.POWERED) ? 15 : 0)));
+    public static final Supplier<BlockItem> FILL_LIGHT_ITEM =
+        ITEMS.register("fill_light", () -> new BlockItem(FILL_LIGHT.get(), new Item.Properties()));
+
     public static final Supplier<TripodBlock> TRIPOD =
         BLOCKS.register("tripod", () -> new TripodBlock(BlockBehaviour.Properties.of()
             .strength(3.5f)

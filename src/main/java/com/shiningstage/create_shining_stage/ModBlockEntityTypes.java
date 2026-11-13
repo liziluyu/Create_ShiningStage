@@ -14,6 +14,10 @@ public class ModBlockEntityTypes {
         BLOCK_ENTITIES.register("spotlight",
             () -> BlockEntityType.Builder.of(SpotlightBlockEntity::new, ModBlocks.SPOTLIGHT.get()).build(null));
 
+    public static final Supplier<BlockEntityType<FillLightBlockEntity>> FILL_LIGHT =
+        BLOCK_ENTITIES.register("fill_light",
+            () -> BlockEntityType.Builder.of(FillLightBlockEntity::new, ModBlocks.FILL_LIGHT.get()).build(null));
+
     public static final Supplier<BlockEntityType<MicrophoneBlockEntity>> MICROPHONE =
         BLOCK_ENTITIES.register("microphone",
             () -> BlockEntityType.Builder.of(MicrophoneBlockEntity::new, ModBlocks.MICROPHONE.get()).build(null));

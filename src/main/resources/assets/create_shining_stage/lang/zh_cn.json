@@ -1,5 +1,6 @@
 {
   "block.create_shining_stage.spotlight": "聚光灯",
+  "block.create_shining_stage.fill_light": "补光灯",
   "block.create_shining_stage.spotlight.max_length": "最大长度",
   "block.create_shining_stage.tripod": "三脚架",
   "block.create_shining_stage.pole": "杆",
@@ -21,6 +22,7 @@
   "block.create_shining_stage.cold_spark_machine.spray_height": "喷射高度",
   "item.create_shining_stage.cold_spark_fuel": "冷焰火燃料",
   "create_shining_stage.configuration.microphoneRange": "麦克风监听范围",
+  "create_shining_stage.configuration.fillLightRange": "补光灯照射范围",
   "create_shining_stage.configuration.speakerClusterRadius": "音响聚合半径",
   "itemGroup.create_shining_stage": "闪耀舞台"
 }

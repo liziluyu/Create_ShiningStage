@@ -20,6 +20,7 @@ public class ModCreativeTabs {
             .icon(() -> new ItemStack(ModBlocks.SPOTLIGHT.get()))
             .displayItems((params, output) -> {
                 output.accept(new ItemStack(ModBlocks.SPOTLIGHT_ITEM.get()));
+                output.accept(new ItemStack(ModBlocks.FILL_LIGHT_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.TRIPOD_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.POLE_ITEM.get()));
                 output.accept(new ItemStack(ModBlocks.MICROPHONE_ITEM.get()));

@@ -185,11 +185,14 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
     }
 
     public static ClipContext beamClipContext(BlockPos source, Vec3 start, Vec3 end) {
-        return new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()) {
+        return new ClipContext(start, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, CollisionContext.empty()) {
             @Override
             public VoxelShape getBlockShape(BlockState state, BlockGetter level, BlockPos pos) {
-                // The enclosing collision box of an angled housing can extend in front of its lens.
-                return pos.equals(source) ? Shapes.empty() : super.getBlockShape(state, level, pos);
+                // Exclude the housing (whose rotated outline can extend in front of its lens) and
+                // every light block, whose outline can depend on the held-item context. Everything
+                // else uses its outline so selectable plants and other non-colliding blocks stop the ray.
+                return pos.equals(source) || state.is(net.minecraft.world.level.block.Blocks.LIGHT)
+                    ? Shapes.empty() : super.getBlockShape(state, level, pos);
             }
         };
     }

@@ -131,7 +131,12 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
     private int lightPoll;
 
     public SpotlightBlockEntity(BlockPos pos, BlockState blockState) {
-        super(ModBlockEntityTypes.SPOTLIGHT.get(), pos, blockState);
+        this(ModBlockEntityTypes.SPOTLIGHT.get(), pos, blockState);
+    }
+
+    protected SpotlightBlockEntity(net.minecraft.world.level.block.entity.BlockEntityType<?> type,
+                                  BlockPos pos, BlockState blockState) {
+        super(type, pos, blockState);
     }
 
     @Override
@@ -153,6 +158,10 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
     /** Beam length in blocks (MIN_RANGE..MAX_RANGE), adjusted via the tail value box. */
     public int getRange() {
         return range == null ? DEFAULT_RANGE : range.getValue();
+    }
+
+    protected Vec3 beamDirection() {
+        return SpotlightBlock.beamDirection(getBlockState());
     }
 
     @Override
@@ -254,7 +263,7 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
      * ones *and* their images in the world.
      */
     private boolean beamPathLoaded() {
-        Vec3 normal = SpotlightBlock.beamDirection(getBlockState());
+        Vec3 normal = beamDirection();
         Vec3 start = Vec3.atCenterOf(worldPosition).add(normal.scale(0.5));
         Vec3 end = start.add(normal.scale(getRange()));
         if (!pathLoaded(start, end)) {
@@ -324,12 +333,12 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
      */
     @Nullable
     private BlockPos beamEndCell() {
-        Vec3 normal = SpotlightBlock.beamDirection(getBlockState());
+        Vec3 normal = beamDirection();
         Vec3 start = Vec3.atCenterOf(worldPosition).add(normal.scale(0.5));
         Vec3 end = start.add(normal.scale(getRange()));
         BlockHitResult hit = level.clip(SpotlightBlock.beamClipContext(worldPosition, start, end));
-        // A light block has no collision shape, so the one placed here is invisible to this clip: the
-        // beam never truncates itself, and the cell stays put on the next poll.
+        // beamClipContext explicitly excludes all light blocks, so one placed here never truncates the
+        // beam and the cell stays put on the next poll.
         //
         // The step back from the hit is the hit's own face normal, not `facing.getOpposite()`: the two
         // agree while the beam stays in one space — an axis-aligned ray enters through the face it
