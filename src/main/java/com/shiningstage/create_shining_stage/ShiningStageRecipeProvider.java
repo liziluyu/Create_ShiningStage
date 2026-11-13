@@ -63,6 +63,7 @@ public class ShiningStageRecipeProvider extends RecipeProvider {
     @Override
     protected void buildRecipes(RecipeOutput output) {
         spotlight(output);
+        fillLight(output);
         tripod(output);
         pole(output);
         microphone(output);
@@ -88,6 +89,20 @@ public class ShiningStageRecipeProvider extends RecipeProvider {
             .patternLine("SGS")
             .patternLine("TCT")
             .build(output, id("mechanical_crafting/spotlight"));
+    }
+
+    /** Glass and electron tubes make the lamp face; sturdy sheets and andesite alloy form its support. */
+    private void fillLight(RecipeOutput output) {
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModBlocks.FILL_LIGHT_ITEM.get())
+            .define('S', AllItems.STURDY_SHEET)
+            .define('G', Items.GLASS)
+            .define('T', AllItems.ELECTRON_TUBE)
+            .define('A', AllItems.ANDESITE_ALLOY)
+            .pattern("SGS")
+            .pattern("STS")
+            .pattern(" A ")
+            .unlockedBy("has_sturdy_sheet", has(AllItems.STURDY_SHEET))
+            .save(output, id("crafting/fill_light"));
     }
 
     /** Three sheets for the legs and plate, andesite alloy for the joint. Two per craft: a spotlight stands on a stack. */
