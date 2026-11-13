@@ -1,0 +1,11 @@
+{
+  "parent": "create_shining_stage:block/spotlight_tripod",
+  "transform": {
+    "rotation": [
+      0,
+      -45.0,
+      0
+    ],
+    "origin": "center"
+  }
+}

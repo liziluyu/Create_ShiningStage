@@ -25,5 +25,6 @@ public class CreateShiningStageClient {
     private void registerRenderers(net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ModBlockEntityTypes.SPOTLIGHT.get(), SpotlightRenderer::new);
         event.registerBlockEntityRenderer(ModBlockEntityTypes.COLD_SPARK_MACHINE.get(), ColdSparkMachineRenderer::new);
+        event.registerBlockEntityRenderer(ModBlockEntityTypes.POSITION_ZERO.get(), PositionZeroRenderer::new);
     }
 }

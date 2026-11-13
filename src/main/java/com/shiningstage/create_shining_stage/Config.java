@@ -1,5 +1,8 @@
 package com.shiningstage.create_shining_stage;
 
+import java.util.List;
+
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class Config {
@@ -31,6 +34,12 @@ public class Config {
             "source at their common centre, with their volumes summed. 0 replays at every speaker",
             "separately; larger values collapse a wider array into a single source.")
         .defineInRange("speakerClusterRadius", 2.0, 0.0, 64.0);
+
+    /** Additional item registry ids accepted by position_zero, regardless of namespace or weapon tag. */
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> POSITION_ZERO_ADDITIONAL_ITEMS = BUILDER
+        .comment("Additional item registry ids accepted by position_zero, for example examplemod:greatsword.")
+        .defineListAllowEmpty("positionZeroAdditionalItems", List.of(),
+            value -> value instanceof String id && ResourceLocation.tryParse(id) != null);
 
     public static final ModConfigSpec SPEC = BUILDER.build();
 }

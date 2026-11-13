@@ -6,10 +6,9 @@ import java.util.List;
 import com.simibubi.create.content.contraptions.Contraption;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
-import net.minecraft.world.level.block.DirectionalBlock;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate.StructureBlockInfo;
 
@@ -29,7 +28,7 @@ public interface SpotlightBeams {
     List<Beam> createShiningStage$spotlightBeams();
 
     /** One spotlight of a contraption, in contraption-local space. */
-    record Beam(BlockPos localPos, Direction facing, int storedRange) {
+    record Beam(BlockPos localPos, Vec3 direction, int storedRange) {
     }
 
     static List<Beam> scan(Contraption contraption) {
@@ -37,7 +36,7 @@ public interface SpotlightBeams {
         for (StructureBlockInfo info : contraption.getBlocks().values()) {
             BlockState state = info.state();
             if (state.getBlock() instanceof SpotlightBlock) {
-                beams.add(new Beam(info.pos(), state.getValue(DirectionalBlock.FACING), storedRange(info)));
+                beams.add(new Beam(info.pos(), SpotlightBlock.beamDirection(state), storedRange(info)));
             }
         }
         return List.copyOf(beams);

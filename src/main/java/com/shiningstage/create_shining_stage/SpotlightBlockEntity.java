@@ -23,15 +23,14 @@ import dev.ryanhcode.sable.sublevel.plot.PlotChunkHolder;
 import dev.ryanhcode.sable.sublevel.storage.SubLevelRemovalReason;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LightBlock;
@@ -41,7 +40,6 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.CollisionContext;
 
 public class SpotlightBlockEntity extends SmartBlockEntity {
     /** Default warm white (#f8f7d2); dye right-click overrides, amethyst resets to this. */
@@ -256,25 +254,30 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
      * ones *and* their images in the world.
      */
     private boolean beamPathLoaded() {
-        Direction facing = getBlockState().getValue(SpotlightBlock.FACING);
+        Vec3 normal = SpotlightBlock.beamDirection(getBlockState());
+        Vec3 start = Vec3.atCenterOf(worldPosition).add(normal.scale(0.5));
+        Vec3 end = start.add(normal.scale(getRange()));
+        if (!pathLoaded(start, end)) {
+            return false;
+        }
         SubLevelAccess subLevel = Sable.HELPER.getContaining(level, worldPosition);
         Pose3dc pose = subLevel == null ? null : subLevel.logicalPose();
-        Vector3d projected = pose == null ? null : new Vector3d();
-        for (int step = 1; step <= getRange(); step++) {
-            BlockPos cell = worldPosition.relative(facing, step);
-            if (!cellPresent(cell)) {
-                return false;
-            }
-            if (projected != null) {
-                // Where that cell sits in the world. A rigid transform preserves spacing, so the cells
-                // of the plot-space walk are the cells of the world-space ray.
-                pose.transformPosition(projected.set(cell.getX() + 0.5, cell.getY() + 0.5, cell.getZ() + 0.5));
-                if (!cellPresent(BlockPos.containing(projected.x, projected.y, projected.z))) {
-                    return false;
-                }
-            }
+        if (pose != null) {
+            Vector3d projectedStart = new Vector3d(start.x, start.y, start.z);
+            Vector3d projectedEnd = new Vector3d(end.x, end.y, end.z);
+            pose.transformPosition(projectedStart);
+            pose.transformPosition(projectedEnd);
+            return pathLoaded(new Vec3(projectedStart.x, projectedStart.y, projectedStart.z),
+                new Vec3(projectedEnd.x, projectedEnd.y, projectedEnd.z));
         }
         return true;
+    }
+
+    private boolean pathLoaded(Vec3 start, Vec3 end) {
+        // Traverse every crossed cell: whole-block sampling can skip cells on a diagonal.
+        return BlockGetter.traverseBlocks(start, end, this,
+            (spotlight, cell) -> spotlight.cellPresent(cell) ? null : Boolean.FALSE,
+            spotlight -> Boolean.TRUE);
     }
 
     /**
@@ -321,12 +324,10 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
      */
     @Nullable
     private BlockPos beamEndCell() {
-        Direction facing = getBlockState().getValue(SpotlightBlock.FACING);
-        Vec3 normal = Vec3.atLowerCornerOf(facing.getNormal());
+        Vec3 normal = SpotlightBlock.beamDirection(getBlockState());
         Vec3 start = Vec3.atCenterOf(worldPosition).add(normal.scale(0.5));
         Vec3 end = start.add(normal.scale(getRange()));
-        BlockHitResult hit = level.clip(new ClipContext(start, end,
-            ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
+        BlockHitResult hit = level.clip(SpotlightBlock.beamClipContext(worldPosition, start, end));
         // A light block has no collision shape, so the one placed here is invisible to this clip: the
         // beam never truncates itself, and the cell stays put on the next poll.
         //
@@ -340,7 +341,7 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
         // (where the air check then refuses the write and the beam lights nothing); the normal is the
         // cell the beam came from by construction, in whichever space the hit lives.
         BlockPos cell = hit.getType() == HitResult.Type.MISS
-            ? worldPosition.relative(facing, getRange())
+            ? BlockPos.containing(Vec3.atCenterOf(worldPosition).add(normal.scale(getRange())))
             : hit.getBlockPos().relative(hit.getDirection());
         return cell.equals(worldPosition) ? null : cell;
     }

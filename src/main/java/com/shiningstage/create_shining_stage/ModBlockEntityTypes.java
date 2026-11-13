@@ -27,4 +27,8 @@ public class ModBlockEntityTypes {
             () -> BlockEntityType.Builder
                 .of(ColdSparkMachineBlockEntity::new, ModBlocks.COLD_SPARK_MACHINE.get())
                 .build(null));
+
+    public static final Supplier<BlockEntityType<PositionZeroBlockEntity>> POSITION_ZERO =
+        BLOCK_ENTITIES.register("position_zero",
+            () -> BlockEntityType.Builder.of(PositionZeroBlockEntity::new, ModBlocks.POSITION_ZERO.get()).build(null));
 }

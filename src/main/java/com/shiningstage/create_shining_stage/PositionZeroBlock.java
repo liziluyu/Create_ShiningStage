@@ -4,24 +4,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.mojang.serialization.MapCodec;
+import com.simibubi.create.foundation.block.IBE;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-/** Floor marking strip: plain decorative block, no block entity. FACING turns it in 90-degree steps. */
-public class PositionZeroBlock extends HorizontalDirectionalBlock {
+/** Floor marking strip with a single displayed weapon. FACING turns it in 90-degree steps. */
+public class PositionZeroBlock extends HorizontalDirectionalBlock implements IBE<PositionZeroBlockEntity> {
     public static final MapCodec<PositionZeroBlock> CODEC = simpleCodec(PositionZeroBlock::new);
-
     /**
      * Outline shapes of the two plate elements of block/position_zero (0.2 and 0.1 model units tall),
      * so the selection box hugs the marking instead of the full cube. Collision stays empty
@@ -31,8 +39,7 @@ public class PositionZeroBlock extends HorizontalDirectionalBlock {
      * does to the model, so shape and model stay aligned on every facing.
      */
     private static final VoxelShape SHAPE_NORTH = Shapes.or(
-        Block.box(4.5, 0, 8, 11.5, 0.2, 11),
-        Block.box(6.5, 0, 5, 9.5, 0.1, 8));
+        Block.box(4.5, 0, 8, 11.5, 0.2, 11), Block.box(6.5, 0, 5, 9.5, 0.1, 8));
     private static final VoxelShape SHAPE_EAST = rotateClockwise(SHAPE_NORTH);
     private static final VoxelShape SHAPE_SOUTH = rotateClockwise(SHAPE_EAST);
     private static final VoxelShape SHAPE_WEST = rotateClockwise(SHAPE_SOUTH);
@@ -52,10 +59,20 @@ public class PositionZeroBlock extends HorizontalDirectionalBlock {
         builder.add(FACING);
     }
 
-    // Matches SpeakerBlock and the vanilla furnace/chest convention: the marking's front faces the placer.
-    // HorizontalDirectionalBlock supplies rotate/mirror, which is what lets a wrench step it around.
+    @Override
+    public BlockEntityType<? extends PositionZeroBlockEntity> getBlockEntityType() {
+        return ModBlockEntityTypes.POSITION_ZERO.get();
+    }
+
+    @Override
+    public Class<PositionZeroBlockEntity> getBlockEntityClass() {
+        return PositionZeroBlockEntity.class;
+    }
+
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
+        // Matches SpeakerBlock and the vanilla furnace/chest convention: the marking's front faces the placer.
+        // HorizontalDirectionalBlock supplies rotate/mirror, which is what lets a wrench step it around.
         return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
     }
 
@@ -71,6 +88,41 @@ public class PositionZeroBlock extends HorizontalDirectionalBlock {
         };
     }
 
+    @Override
+    protected ItemInteractionResult useItemOn(ItemStack held, BlockState state, Level level, BlockPos pos,
+                                               Player player, InteractionHand hand, BlockHitResult hit) {
+        if (!(level.getBlockEntity(pos) instanceof PositionZeroBlockEntity be))
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        if (be.isEmpty() && !held.isEmpty()) {
+            // The client predicts an attempted insertion; the common config and allowed-item policy are
+            // checked by the server, whose answer is authoritative for inventory changes.
+            if (level.isClientSide) return ItemInteractionResult.SUCCESS;
+            if (PositionZeroBlockEntity.canInsert(held)) {
+                be.insertOne(held, player);
+                return ItemInteractionResult.SUCCESS;
+            }
+        }
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
+                                                BlockHitResult hit) {
+        if (player.getMainHandItem().isEmpty()
+            && level.getBlockEntity(pos) instanceof PositionZeroBlockEntity be && !be.isEmpty()) {
+            if (!level.isClientSide) be.retrieve(player);
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+        return InteractionResult.PASS;
+    }
+
+    @Override
+    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+        if (!level.isClientSide && level.getBlockEntity(pos) instanceof PositionZeroBlockEntity be)
+            be.dropStoredItem();
+        return super.playerWillDestroy(level, pos, state, player);
+    }
+
     /**
      * Quarter turn clockwise seen from above - the (x, z) -> (1 - z, x) of blockstate "y": 90.
      * Works in block units, because that is what forAllBoxes reports; the model units Block.box takes
@@ -80,7 +132,6 @@ public class PositionZeroBlock extends HorizontalDirectionalBlock {
         List<AABB> boxes = new ArrayList<>();
         shape.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) ->
             boxes.add(new AABB(1 - maxZ, minY, minX, 1 - minZ, maxY, maxX)));
-        return Shapes.or(Shapes.empty(),
-            boxes.stream().map(Shapes::create).toArray(VoxelShape[]::new));
+        return Shapes.or(Shapes.empty(), boxes.stream().map(Shapes::create).toArray(VoxelShape[]::new));
     }
 }

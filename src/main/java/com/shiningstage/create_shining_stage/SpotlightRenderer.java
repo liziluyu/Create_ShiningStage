@@ -25,17 +25,13 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.CollisionContext;
 
 public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEntity> {
     /** Divergence of the frustum; bottom half-size = top + span * HALF_ANGLE_TAN. */
@@ -137,8 +133,7 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
      */
     @Override
     public AABB getRenderBoundingBox(SpotlightBlockEntity be) {
-        Vec3i normal = be.getBlockState().getValue(DirectionalBlock.FACING).getNormal();
-        Vec3 axis = Vec3.atLowerCornerOf(normal).scale(SpotlightBlockEntity.MAX_RANGE);
+        Vec3 axis = SpotlightBlock.beamDirection(be.getBlockState()).scale(SpotlightBlockEntity.MAX_RANGE);
         return new AABB(be.getBlockPos())
             .expandTowards(axis)
             // Opposite side, purely to hold the centre: nothing is drawn there.
@@ -155,7 +150,7 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
         }
 
         BlockPos pos = be.getBlockPos();
-        Direction dir = be.getBlockState().getValue(DirectionalBlock.FACING);
+        Direction dir = be.getBlockState().getValue(SpotlightBlock.FACING);
 
         // Redstone can't be read per-face; a single signal drives both convergence and
         // opacity together. 0 = widest frustum + transparent, 15 = prism + full opacity.
@@ -165,12 +160,11 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
             return;
         }
 
-        Vec3i normal = dir.getNormal();
+        Vec3 normal = SpotlightBlock.beamDirection(be.getBlockState());
         Vec3 center = Vec3.atCenterOf(pos);
-        Vec3 start = center.add(Vec3.atLowerCornerOf(normal).scale(0.5));
-        Vec3 end = start.add(Vec3.atLowerCornerOf(normal).scale(be.getRange()));
-        BlockHitResult hit = level.clip(new ClipContext(
-            start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
+        Vec3 start = center.add(normal.scale(0.5));
+        Vec3 end = start.add(normal.scale(be.getRange()));
+        BlockHitResult hit = level.clip(SpotlightBlock.beamClipContext(pos, start, end));
 
         // A hit in another physical space (ship/sub-level) sits at far-away coordinates, so a
         // vanilla distanceTo explodes and the beam looks infinite. Sable maps both points into a
@@ -197,6 +191,7 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
 
         ms.pushPose();
         ms.translate(0.5, 0.5, 0.5);
+        ms.mulPose(SpotlightBlock.modelRotation(be.getBlockState()));
         ms.mulPose(dir.getRotation());
         ms.mulPose(Axis.XP.rotationDegrees(-90f));
         // Local +Z now points along `dir`; origin at block center.
@@ -263,11 +258,11 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
 
         AABB box = fallback;
         for (SpotlightBeams.Beam beam : beams) {
-            Vec3i normal = beam.facing().getNormal();
+            Vec3 normal = beam.direction();
             int range = beamRange(contraption, beam);
 
-            Vec3 beamStart = Vec3.atCenterOf(beam.localPos()).add(Vec3.atLowerCornerOf(normal).scale(0.5));
-            Vec3 beamEnd = beamStart.add(Vec3.atLowerCornerOf(normal).scale(range));
+            Vec3 beamStart = Vec3.atCenterOf(beam.localPos()).add(normal.scale(0.5));
+            Vec3 beamEnd = beamStart.add(normal.scale(range));
             // Hull of the drawn frustum: the emitter box plus the tip box, which is wider by the
             // beam's divergence over its length (widest when the redstone control is 0).
             AABB local = new AABB(beam.localPos())

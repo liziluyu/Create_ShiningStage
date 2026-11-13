@@ -18,6 +18,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -25,9 +26,13 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.joml.Quaternionf;
 
 public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlockEntity>, IWrenchable {
     public static final MapCodec<SpotlightBlock> CODEC = simpleCodec(SpotlightBlock::new);
@@ -35,6 +40,9 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
     /** Ground, hanging, tripod, or one of the two side-connection models. */
     public static final EnumProperty<MountType> MOUNT = EnumProperty.create("mount", MountType.class);
     public static final DirectionProperty MODEL_FACING = DirectionProperty.create("model_facing", Direction.Plane.HORIZONTAL);
+    /** Four 22.5-degree steps within each of the existing quarter turns; old states default to 0. */
+    public static final IntegerProperty ROTATION = IntegerProperty.create("rotation", 0, 3);
+    public static final float ROTATION_STEP = 22.5f;
 
     /**
      * Outline/collision shapes, taken from the largest element of each model family
@@ -62,7 +70,7 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
     public SpotlightBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH)
-            .setValue(MOUNT, MountType.GROUND).setValue(MODEL_FACING, Direction.NORTH));
+            .setValue(MOUNT, MountType.GROUND).setValue(MODEL_FACING, Direction.NORTH).setValue(ROTATION, 0));
     }
 
     @Override
@@ -72,7 +80,7 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, MOUNT, MODEL_FACING);
+        builder.add(FACING, MOUNT, MODEL_FACING, ROTATION);
     }
 
     @Override
@@ -89,7 +97,17 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
             mount = localEastWorld == side.getOpposite() ? MountType.SIDE_LEFT : MountType.SIDE_RIGHT;
             beam = modelFacing;
         }
-        return defaultBlockState().setValue(FACING, beam).setValue(MOUNT, mount).setValue(MODEL_FACING, modelFacing);
+        int rotation = 0;
+        if (mount != MountType.SIDE_LEFT && mount != MountType.SIDE_RIGHT) {
+            int step = Math.floorMod(Math.round(context.getRotation() / ROTATION_STEP), 16);
+            modelFacing = Direction.fromYRot((step / 4) * 90 + 180);
+            if (beam.getAxis().isHorizontal()) {
+                beam = modelFacing;
+            }
+            rotation = step % 4;
+        }
+        return defaultBlockState().setValue(FACING, beam).setValue(MOUNT, mount)
+            .setValue(MODEL_FACING, modelFacing).setValue(ROTATION, rotation);
     }
 
     /**
@@ -112,6 +130,10 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
 
     @Override
     public BlockState getRotatedBlockState(BlockState state, Direction targetedFace) {
+        int rotation = state.getValue(ROTATION) + 1;
+        if (rotation < 4) {
+            return state.setValue(ROTATION, rotation);
+        }
         Direction beam = state.getValue(FACING);
         Direction modelFacing = state.getValue(MODEL_FACING);
         MountType mount = state.getValue(MOUNT);
@@ -126,7 +148,50 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
         } else {
             modelFacing = modelFacing.getClockWise();
         }
-        return state.setValue(FACING, beam).setValue(MODEL_FACING, modelFacing);
+        return state.setValue(FACING, beam).setValue(MODEL_FACING, modelFacing).setValue(ROTATION, 0);
+    }
+
+    private static boolean isSideMounted(BlockState state) {
+        MountType mount = state.getValue(MOUNT);
+        return mount == MountType.SIDE_LEFT || mount == MountType.SIDE_RIGHT;
+    }
+
+    private static Vec3 rotationAxis(BlockState state) {
+        return Vec3.atLowerCornerOf((isSideMounted(state)
+            ? state.getValue(MODEL_FACING).getClockWise() : Direction.UP).getNormal());
+    }
+
+    private static float rotationRadians(BlockState state) {
+        return (float) Math.toRadians(state.getValue(ROTATION) * ROTATION_STEP)
+            * (isSideMounted(state) ? 1 : -1);
+    }
+
+    /** Shared by the housing, beam, light placement and range value box. */
+    public static Vec3 rotateVector(BlockState state, Vec3 vector) {
+        Vec3 axis = rotationAxis(state);
+        double angle = rotationRadians(state);
+        double cos = Math.cos(angle);
+        return vector.scale(cos).add(axis.cross(vector).scale(Math.sin(angle)))
+            .add(axis.scale(axis.dot(vector) * (1 - cos)));
+    }
+
+    public static Quaternionf modelRotation(BlockState state) {
+        Vec3 axis = rotationAxis(state);
+        return new Quaternionf().rotationAxis(rotationRadians(state), (float) axis.x, (float) axis.y, (float) axis.z);
+    }
+
+    public static Vec3 beamDirection(BlockState state) {
+        return rotateVector(state, Vec3.atLowerCornerOf(state.getValue(FACING).getNormal()));
+    }
+
+    public static ClipContext beamClipContext(BlockPos source, Vec3 start, Vec3 end) {
+        return new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()) {
+            @Override
+            public VoxelShape getBlockShape(BlockState state, BlockGetter level, BlockPos pos) {
+                // The enclosing collision box of an angled housing can extend in front of its lens.
+                return pos.equals(source) ? Shapes.empty() : super.getBlockShape(state, level, pos);
+            }
+        };
     }
 
     @Override
@@ -135,7 +200,7 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
     }
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return switch (state.getValue(FACING)) {
+        VoxelShape shape = switch (state.getValue(FACING)) {
             case UP -> SHAPE_UP;
             case DOWN -> SHAPE_DOWN;
             case NORTH -> SHAPE_NORTH;
@@ -143,9 +208,30 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
             case SOUTH -> SHAPE_SOUTH;
             case WEST -> SHAPE_WEST;
         };
+        if (state.getValue(ROTATION) == 0) {
+            return shape;
+        }
+        // A voxel shape is axis aligned: enclose each rotated box for collision and selection.
+        VoxelShape[] rotated = { Shapes.empty() };
+        shape.forAllBoxes((x0, y0, z0, x1, y1, z1) -> {
+            double minX = Double.POSITIVE_INFINITY, minY = minX, minZ = minX;
+            double maxX = Double.NEGATIVE_INFINITY, maxY = maxX, maxZ = maxX;
+            for (int corner = 0; corner < 8; corner++) {
+                Vec3 p = rotateVector(state, new Vec3((corner & 1) == 0 ? x0 - .5 : x1 - .5,
+                    (corner & 2) == 0 ? y0 - .5 : y1 - .5, (corner & 4) == 0 ? z0 - .5 : z1 - .5));
+                minX = Math.min(minX, p.x + .5); maxX = Math.max(maxX, p.x + .5);
+                minY = Math.min(minY, p.y + .5); maxY = Math.max(maxY, p.y + .5);
+                minZ = Math.min(minZ, p.z + .5); maxZ = Math.max(maxZ, p.z + .5);
+            }
+            rotated[0] = Shapes.or(rotated[0], Shapes.box(minX, minY, minZ, maxX, maxY, maxZ));
+        });
+        return rotated[0];
     }
     @Override
     protected VoxelShape getBlockSupportShape(BlockState state, BlockGetter level, BlockPos pos) {
+        if (state.getValue(ROTATION) != 0 && (isSideMounted(state) || state.getValue(FACING).getAxis().isHorizontal())) {
+            return Shapes.empty(); // an angled tail no longer lies on a whole block face
+        }
         // Only the tail face is sturdy; everything else stays non-attachable.
         return switch (state.getValue(FACING)) {
             case NORTH -> SUPPORT_TAIL_SOUTH;
