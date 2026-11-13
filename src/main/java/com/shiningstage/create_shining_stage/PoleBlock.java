@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
@@ -97,6 +98,39 @@ public class PoleBlock extends Block {
         if (west) shape = Shapes.or(shape, WEST_ARM);
         if (east) shape = Shapes.or(shape, EAST_ARM);
         return shape;
+    }
+
+    @Override
+    protected boolean isSignalSource(BlockState state) {
+        return true;
+    }
+
+    @Override
+    protected int getSignal(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
+        return StageRedstoneNetwork.getSignal(level, pos);
+    }
+
+    @Override
+    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos,
+                                   boolean moving) {
+        // Neighbor updates are queued; ignore our own network broadcasts to avoid re-broadcast loops.
+        if (block instanceof TripodBlock || block instanceof PoleBlock) return;
+        StageRedstoneNetwork.notifyNetwork(level, pos, this);
+    }
+
+    @Override
+    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean moving) {
+        if (!oldState.is(state.getBlock())) StageRedstoneNetwork.notifyNetwork(level, pos, this);
+    }
+
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moving) {
+        if (!state.is(newState.getBlock())) {
+            for (Direction direction : Direction.values()) {
+                StageRedstoneNetwork.notifyNetwork(level, pos.relative(direction), this);
+            }
+        }
+        super.onRemove(state, level, pos, newState, moving);
     }
 
     @Override
