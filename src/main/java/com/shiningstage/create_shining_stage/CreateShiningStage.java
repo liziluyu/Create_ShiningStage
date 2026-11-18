@@ -34,6 +34,10 @@ public class CreateShiningStage {
         modEventBus.addListener(this::gatherData);
         NeoForge.EVENT_BUS.addListener(SoundRelayHandler::onAtPosition);
         NeoForge.EVENT_BUS.addListener(SoundRelayHandler::onAtEntity);
+        NeoForge.EVENT_BUS.addListener(StageRedstoneNetwork::onNeighborNotify);
+        NeoForge.EVENT_BUS.addListener(StageRedstoneNetwork::onChunkLoad);
+        NeoForge.EVENT_BUS.addListener(StageRedstoneNetwork::onChunkUnload);
+        NeoForge.EVENT_BUS.addListener(StageRedstoneNetwork::onLevelTick);
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
 

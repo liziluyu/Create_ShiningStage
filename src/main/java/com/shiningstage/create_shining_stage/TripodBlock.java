@@ -9,6 +9,8 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
@@ -17,17 +19,24 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  */
 public class TripodBlock extends Block {
     public static final MapCodec<TripodBlock> CODEC = simpleCodec(TripodBlock::new);
+    public static final IntegerProperty POWER = StageRedstoneNetwork.POWER;
 
     /** The stand's central column; the splayed legs are too thin to collide. */
     private static final VoxelShape SHAPE = Block.box(7, 0, 7, 9, 16, 9);
 
     public TripodBlock(Properties properties) {
         super(properties);
+        registerDefaultState(stateDefinition.any().setValue(POWER, 0));
     }
 
     @Override
     protected MapCodec<? extends Block> codec() {
         return CODEC;
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(POWER);
     }
 
     @Override
@@ -47,7 +56,7 @@ public class TripodBlock extends Block {
 
     @Override
     protected int getSignal(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
-        return StageRedstoneNetwork.getSignal(level, pos);
+        return StageRedstoneNetwork.getSignal(state);
     }
 
     @Override

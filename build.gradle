@@ -159,6 +159,24 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs.add('-proc:none')
 }
 
+// Exercises the Minecraft-independent signal graph without starting a game or loading a mod bus.
+tasks.register('stageSignalSolverRegression', JavaExec) {
+    group = 'verification'
+    description = 'Runs dependency-free regression cases for the stage redstone graph solver.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.shiningstage.create_shining_stage.StageSignalSolverRegression'
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('stageSignalSolverRegression')
+}
+
+// The regression is a dependency-free main class run by JavaExec above, not a JUnit test.
+tasks.named('test').configure {
+    failOnNoDiscoveredTests = false
+}
+
 idea {
     module {
         downloadSources = true

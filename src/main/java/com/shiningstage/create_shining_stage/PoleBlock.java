@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -29,6 +30,7 @@ public class PoleBlock extends Block {
     public static final BooleanProperty SOUTH = BooleanProperty.create("south");
     public static final BooleanProperty WEST = BooleanProperty.create("west");
     public static final BooleanProperty EAST = BooleanProperty.create("east");
+    public static final IntegerProperty POWER = StageRedstoneNetwork.POWER;
 
     private static final VoxelShape MID = Block.box(6.5, 6.5, 6.5, 9.5, 9.5, 9.5);
     private static final VoxelShape DOWN_ARM = Block.box(7, 0, 7, 9, 8, 9);
@@ -43,7 +45,8 @@ public class PoleBlock extends Block {
         registerDefaultState(stateDefinition.any()
             .setValue(DOWN, false).setValue(UP, false)
             .setValue(NORTH, false).setValue(SOUTH, false)
-            .setValue(WEST, false).setValue(EAST, false));
+            .setValue(WEST, false).setValue(EAST, false)
+            .setValue(POWER, 0));
     }
 
     @Override
@@ -53,7 +56,7 @@ public class PoleBlock extends Block {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(DOWN, UP, NORTH, SOUTH, WEST, EAST);
+        builder.add(DOWN, UP, NORTH, SOUTH, WEST, EAST, POWER);
     }
 
     @Override
@@ -107,7 +110,7 @@ public class PoleBlock extends Block {
 
     @Override
     protected int getSignal(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
-        return StageRedstoneNetwork.getSignal(level, pos);
+        return StageRedstoneNetwork.getSignal(state);
     }
 
     @Override
