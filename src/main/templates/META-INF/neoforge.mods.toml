@@ -13,7 +13,7 @@ authors="${mod_authors}"
 # Jar-root relative, resolved against src/main/resources; shown in the mod list.
 logoFile="icon.png"
 description='''
-A Create addon powered by Create and Create: Aeronautics.
+A Create addon with optional Create: Aeronautics integration.
 '''
 
 [[dependencies.${mod_id}]]
@@ -39,13 +39,20 @@ A Create addon powered by Create and Create: Aeronautics.
 
 [[dependencies.${mod_id}]]
     modId="aeronautics_bundled"
-    type="required"
+    type="optional"
     versionRange="[1.3.0,1.4.0)"
     ordering="NONE"
     side="BOTH"
 [[dependencies.${mod_id}]]
     modId="sable"
-    type="required"
+    type="optional"
     versionRange="[2.0.5,)"
     ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="veil"
+    type="required"
+    versionRange="${veil_version_range}"
+    ordering="AFTER"
     side="BOTH"

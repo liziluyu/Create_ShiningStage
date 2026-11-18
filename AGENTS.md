@@ -5,10 +5,13 @@
 **Create Shining Stage** (`create_shining_stage`) is a NeoForge 1.21.1 addon for the Create mod. It adds a single content piece: a **Spotlight** block that emits a colored, redstone-controlled light beam (frustum) — dyeable, with scroll-adjustable length (2–32 blocks), designed to work correctly on Create: Aeronautics moving ships via Sable's sub-level-aware raycasting.
 
 - Mod ID: `create_shining_stage`, group: `com.shiningstage`, version `1.0.0`
-- Required runtime deps (declared in `neoforge.mods.toml`): `create` [6.0.10,6.1.0), `aeronautics_bundled` [1.3.0,1.4.0), `sable` [2.0.5,)
+- Required runtime deps (declared in `neoforge.mods.toml`): `create` [6.0.10,6.1.0), `veil` [4.3.2,) (bundled through official Maven Jar-in-Jar coordinates)
+- Optional runtime deps: `aeronautics_bundled` [1.3.0,1.4.0), `sable` [2.0.5,). Both remain in the local development runtime through `localRuntime`; they are not bundled or required for users.
 - License: All Rights Reserved
 
 ## Architecture & Data Flow
+
+**Optional Sable integration**: `SableCompat` checks `ModList.isLoaded("sable")` before entering `SableIntegration`, the only class containing Sable API references. Without Sable, distances and positions use vanilla world space and no sub-level cleanup observer is created. With Sable, the existing ship-aware distances, pose projection and deferred beam-light cleanup remain enabled. Veil is an independent rendering dependency, bundled as the unmodified official `foundry.veil:veil-neoforge-1.21.1:4.3.2` artifact; its nested dependencies are retained and its notices/licenses ship under `META-INF`.
 
 Small flat package — all classes live directly in `com.shiningstage.create_shining_stage`, except the mixins, which must sit in `com.shiningstage.create_shining_stage.mixin` (a mixin config claims its whole package):
 

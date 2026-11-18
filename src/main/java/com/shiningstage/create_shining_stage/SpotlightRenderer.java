@@ -14,10 +14,9 @@ import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.foundation.virtualWorld.VirtualRenderWorld;
 
-import dev.ryanhcode.sable.Sable;
-import dev.ryanhcode.sable.util.SableDistUtil;
 import foundry.veil.api.client.render.VeilRenderBridge;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
@@ -171,8 +170,8 @@ public class SpotlightRenderer implements BlockEntityRenderer<SpotlightBlockEnti
         // common space for the true distance, exactly like the laser pointer does.
         double dist = hit.getType() == HitResult.Type.MISS
             ? end.distanceTo(center)
-            : Math.sqrt(Sable.HELPER.distanceSquaredWithSubLevels(
-                SableDistUtil.getClientLevel(), center, hit.getLocation()));
+            : Math.sqrt(SableCompat.distanceSquared(
+                Minecraft.getInstance().level, center, hit.getLocation()));
         float beamLength = Math.min((float) (dist - 0.05), be.getRange());
         if (beamLength <= 0.1f) {
             return;

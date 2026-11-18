@@ -1,26 +1,14 @@
 package com.shiningstage.create_shining_stage;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.WeakHashMap;
 
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3d;
 
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollValueBehaviour;
-
-import dev.ryanhcode.sable.Sable;
-import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
-import dev.ryanhcode.sable.api.sublevel.SubLevelObserver;
-import dev.ryanhcode.sable.companion.SubLevelAccess;
-import dev.ryanhcode.sable.companion.math.Pose3dc;
-import dev.ryanhcode.sable.sublevel.SubLevel;
-import dev.ryanhcode.sable.sublevel.plot.PlotChunkHolder;
-import dev.ryanhcode.sable.sublevel.storage.SubLevelRemovalReason;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -34,9 +22,7 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LightBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -76,49 +62,6 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
     /** What is left where the beam ends. Only ever placed into air, so never waterlogged. */
     private static final BlockState BEAM_LIGHT =
         Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, LIGHT_LEVEL);
-
-    /**
-     * Puts back the lights of a structure that is going away.
-     *
-     * <p>A spotlight riding a physics structure keeps its block entity ticking, so its polls keep the
-     * light in step exactly as they do in the world. The structure itself, though, can vanish without
-     * a single block being removed from the level: removing or unloading a sub-level unloads its plot
-     * chunks, and the block entities in them are told through {@code onChunkUnloaded}/{@code setRemoved}
-     * and never through {@code Block#onRemove}. That is the same shape as an ordinary chunk unload,
-     * which must not delete anything, so the two cannot be told apart from inside a block entity —
-     * which is why a light left in the world by a structure needs this second way out.
-     *
-     * <p>Sable calls its observers at the top of exactly that teardown, while the plot chunks are still
-     * loaded, so the departing structure's spotlights can still be found and asked to clean up after
-     * themselves.
-     */
-    private static final SubLevelObserver LIGHT_CLEANUP = new SubLevelObserver() {
-        @Override
-        public void onSubLevelRemoved(SubLevel subLevel, SubLevelRemovalReason reason) {
-            // Both reasons: a removed structure is gone, and one that is merely unloaded has left the
-            // loaded world too. Either way its beam no longer exists here, and a light left behind
-            // would outlive it forever. The lights of a structure that comes back are re-placed by the
-            // first poll after it loads.
-            for (PlotChunkHolder holder : subLevel.getPlot().getLoadedChunks()) {
-                LevelChunk chunk = holder.getChunk();
-                if (chunk == null) {
-                    continue;
-                }
-                for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
-                    if (blockEntity instanceof SpotlightBlockEntity spotlight) {
-                        // Not the cleanup itself, but a request for it a moment later: this callback
-                        // runs in the middle of Sable taking the structure apart, and the world writes
-                        // it needs are none of that teardown's business. Reading the plot's block
-                        // entities is safe here; touching the level is not.
-                        spotlight.removePlacedLightsLater();
-                    }
-                }
-            }
-        }
-    };
-
-    /** Levels whose sub-level container already carries {@link #LIGHT_CLEANUP}. */
-    private static final Set<Level> OBSERVED_LEVELS = Collections.newSetFromMap(new WeakHashMap<>());
 
     private int laserColor = DEFAULT_COLOR;
     private ScrollValueBehaviour range;
@@ -205,14 +148,7 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
         // watching. Asked of the recorded cells each poll rather than of the moment one is placed: a
         // spotlight assembled with its beam already lit has its record from the world, and would
         // otherwise never be watched.
-        if (Sable.HELPER.isInPlotGrid(level, worldPosition)) {
-            for (BlockPos light : placedLights) {
-                if (!Sable.HELPER.isInPlotGrid(level, light)) {
-                    observeSubLevelRemovals();
-                    break;
-                }
-            }
-        }
+        SableCompat.trackExternalLights(level, worldPosition, placedLights);
         if (end == null || !cellPresent(end)) {
             return;
         }
@@ -269,17 +205,8 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
         if (!pathLoaded(start, end)) {
             return false;
         }
-        SubLevelAccess subLevel = Sable.HELPER.getContaining(level, worldPosition);
-        Pose3dc pose = subLevel == null ? null : subLevel.logicalPose();
-        if (pose != null) {
-            Vector3d projectedStart = new Vector3d(start.x, start.y, start.z);
-            Vector3d projectedEnd = new Vector3d(end.x, end.y, end.z);
-            pose.transformPosition(projectedStart);
-            pose.transformPosition(projectedEnd);
-            return pathLoaded(new Vec3(projectedStart.x, projectedStart.y, projectedStart.z),
-                new Vec3(projectedEnd.x, projectedEnd.y, projectedEnd.z));
-        }
-        return true;
+        return pathLoaded(SableCompat.toWorldPosition(level, worldPosition, start),
+            SableCompat.toWorldPosition(level, worldPosition, end));
     }
 
     private boolean pathLoaded(Vec3 start, Vec3 end) {
@@ -300,25 +227,6 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
      */
     private boolean cellPresent(BlockPos cell) {
         return level.isLoaded(cell);
-    }
-
-    /**
-     * Makes the level's sub-level container call {@link #LIGHT_CLEANUP}, once per level and only when
-     * a spotlight actually has a light outside the structure it rides — a world with no ships in it
-     * never pays for any of this.
-     */
-    private void observeSubLevelRemovals() {
-        if (!OBSERVED_LEVELS.add(level)) {
-            return;
-        }
-        SubLevelContainer container = SubLevelContainer.getContainer(level);
-        if (container == null) {
-            // No container yet: forget the mark, so a later poll can try again rather than leaving the
-            // level permanently unwatched.
-            OBSERVED_LEVELS.remove(level);
-            return;
-        }
-        container.addObserver(LIGHT_CLEANUP);
     }
 
     /**
@@ -369,7 +277,7 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
      */
     private boolean removeBeamLight(BlockPos pos) {
         if (!cellPresent(pos)) {
-            return Sable.HELPER.isInPlotGrid(level, pos);
+            return SableCompat.isInPlotGrid(level, pos);
         }
         if (level.getBlockState(pos).is(Blocks.LIGHT)) {
             level.removeBlock(pos, false);
@@ -394,7 +302,7 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
 
     /**
      * Asks for {@link #removePlacedLights} to run once the server finishes what it is doing, rather than
-     * inside it. {@link #LIGHT_CLEANUP} is called from the middle of a structure's removal, and the task
+     * inside it. Sable's cleanup observer is called from the middle of a structure's removal, and the task
      * queue puts these writes after that teardown has unwound instead of re-entering it.
      */
     public void removePlacedLightsLater() {

@@ -15,8 +15,6 @@ import org.jetbrains.annotations.Nullable;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 
-import dev.ryanhcode.sable.Sable;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
@@ -207,7 +205,7 @@ public class SoundRelayHandler {
      */
     private static void accumulate(Level level, Map<BlockPos, Target> heard, Vec3 sourcePos, int range,
                                    Vec3 micPos, Iterable<BlockPos> boundSpeakers, float volume) {
-        double d2 = Sable.HELPER.distanceSquaredWithSubLevels(level, sourcePos, micPos);
+        double d2 = SableCompat.distanceSquared(level, sourcePos, micPos);
         if (d2 > (double) range * range) {
             return;
         }
@@ -259,7 +257,7 @@ public class SoundRelayHandler {
             // while it holds nothing else.
             double nearestD2 = radius * radius;
             for (Cluster cluster : clusters) {
-                double d2 = Sable.HELPER.distanceSquaredWithSubLevels(level, cluster.position, target.position);
+                double d2 = SableCompat.distanceSquared(level, cluster.position, target.position);
                 if (d2 <= nearestD2) {
                     nearestD2 = d2;
                     nearest = cluster;
