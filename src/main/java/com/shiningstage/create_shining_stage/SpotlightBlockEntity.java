@@ -193,18 +193,14 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
      * for this — it asks whether a chunk is entity-ticking, which is narrower, so it reports chunks as
      * absent that are present and perfectly readable.
      *
-     * <p>A spotlight riding a structure is checked in both spaces, because Sable's
-     * {@code BlockGetter#clip} maps a ray starting inside a sub-level out to the structure's real
-     * position and clips the main level there as well: the cells that can be touched are the plot-space
-     * ones *and* their images in the world.
+     * <p>A spotlight riding a structure checks only its projected world path here. Sable's clip maps
+     * that path into intersecting sub-levels itself; plot chunks outside a structure's loaded plot
+     * holders are treated as empty chunks by Sable and must not make the world-space path stand down.
      */
     private boolean beamPathLoaded() {
         Vec3 normal = beamDirection();
         Vec3 start = Vec3.atCenterOf(worldPosition).add(normal.scale(0.5));
         Vec3 end = start.add(normal.scale(getRange()));
-        if (!pathLoaded(start, end)) {
-            return false;
-        }
         return pathLoaded(SableCompat.toWorldPosition(level, worldPosition, start),
             SableCompat.toWorldPosition(level, worldPosition, end));
     }
@@ -235,9 +231,10 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
      *
      * <p>The raycast mirrors {@link SpotlightRenderer}'s — same clip, same bounds — so the block lands in
      * the last cell the drawn frustum covers: the cell before the hit, or the cell at {@link #getRange()}
-     * when nothing is in the way. Only the cell is taken from it, never the ship-aware distance the
-     * renderer needs for the beam's length: a hit is reported in whatever space the block it hit lives
-     * in, so a beam crossing onto a sub-level still ends in that sub-level's own coordinates.
+     * when nothing is in the way. A hit cell stays in the coordinate space Sable reports for the block
+     * it hit; a miss endpoint is projected from plot space to world space for a spotlight on a ship.
+     * Only the cell is taken from the raycast, never the ship-aware distance the renderer needs for the
+     * beam's length.
      */
     @Nullable
     private BlockPos beamEndCell() {
@@ -257,9 +254,14 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
         // the hull it lit, so "one step back along our facing" lands beside the hit or inside the hull
         // (where the air check then refuses the write and the beam lights nothing); the normal is the
         // cell the beam came from by construction, in whichever space the hit lives.
-        BlockPos cell = hit.getType() == HitResult.Type.MISS
-            ? BlockPos.containing(Vec3.atCenterOf(worldPosition).add(normal.scale(getRange())))
-            : hit.getBlockPos().relative(hit.getDirection());
+        BlockPos cell;
+        if (hit.getType() == HitResult.Type.MISS) {
+            Vec3 missCell = Vec3.atCenterOf(worldPosition).add(normal.scale(getRange()));
+            missCell = SableCompat.toWorldPosition(level, worldPosition, missCell);
+            cell = BlockPos.containing(missCell);
+        } else {
+            cell = hit.getBlockPos().relative(hit.getDirection());
+        }
         return cell.equals(worldPosition) ? null : cell;
     }
 
