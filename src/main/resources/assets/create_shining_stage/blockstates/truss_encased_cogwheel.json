@@ -1,5 +1,5 @@
 {
   "variants": {
-    "": { "model": "create_shining_stage:block/truss" }
+    "": { "model": "create_shining_stage:block/truss/truss" }
   }
 }

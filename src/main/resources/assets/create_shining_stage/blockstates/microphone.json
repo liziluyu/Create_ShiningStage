@@ -1,8 +1,8 @@
 {
   "variants": {
-    "facing=north": { "model": "create_shining_stage:block/microphone_tripod" },
-    "facing=east": { "model": "create_shining_stage:block/microphone_tripod", "y": 90 },
-    "facing=south": { "model": "create_shining_stage:block/microphone_tripod", "y": 180 },
-    "facing=west": { "model": "create_shining_stage:block/microphone_tripod", "y": 270 }
+    "facing=north": { "model": "create_shining_stage:block/microphone/microphone_tripod" },
+    "facing=east": { "model": "create_shining_stage:block/microphone/microphone_tripod", "y": 90 },
+    "facing=south": { "model": "create_shining_stage:block/microphone/microphone_tripod", "y": 180 },
+    "facing=west": { "model": "create_shining_stage:block/microphone/microphone_tripod", "y": 270 }
   }
 }

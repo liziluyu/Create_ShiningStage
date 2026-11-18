@@ -33,7 +33,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public class PositionZeroBlock extends HorizontalDirectionalBlock implements IBE<PositionZeroBlockEntity> {
     public static final MapCodec<PositionZeroBlock> CODEC = simpleCodec(PositionZeroBlock::new);
     /**
-     * Outline shapes of the two plate elements of block/position_zero (0.2 and 0.1 model units tall),
+     * Outline shapes of the two plate elements of block/position_zero/position_zero (0.2 and 0.1 model units tall),
      * so the selection box hugs the marking instead of the full cube. Collision stays empty
      * (Properties#noCollission): the model is a floor decal, and a full cube here would be an invisible
      * one-block wall on top of the very floor the strip marks. The rotated copies are those boxes

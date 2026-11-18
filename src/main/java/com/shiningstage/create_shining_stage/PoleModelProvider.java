@@ -77,7 +77,7 @@ public class PoleModelProvider implements DataProvider {
             }
 
             JsonObject item = new JsonObject();
-            item.addProperty("parent", MOD_ID + ":block/tripod_pole");
+            item.addProperty("parent", MOD_ID + ":block/tripod/tripod_pole");
             writes.add(DataProvider.saveStable(cachedOutput, blockstate,
                 output.getOutputFolder().resolve("assets/" + MOD_ID + "/blockstates/pole.json")));
             writes.add(DataProvider.saveStable(cachedOutput, item,

@@ -1,0 +1,11 @@
+{
+  "parent": "create_shining_stage:block/spotlight/spotlight_hang",
+  "transform": {
+    "rotation": [
+      0,
+      -22.5,
+      0
+    ],
+    "origin": "center"
+  }
+}

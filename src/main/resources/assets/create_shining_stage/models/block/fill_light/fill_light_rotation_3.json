@@ -1,0 +1,11 @@
+{
+  "transform": {
+    "rotation": [
+      0,
+      -67.5,
+      0
+    ],
+    "origin": "center"
+  },
+  "parent": "create_shining_stage:block/fill_light/fill_light"
+}
