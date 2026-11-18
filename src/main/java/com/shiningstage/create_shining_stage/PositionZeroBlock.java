@@ -21,6 +21,8 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -94,9 +96,11 @@ public class PositionZeroBlock extends HorizontalDirectionalBlock implements IBE
         if (!(level.getBlockEntity(pos) instanceof PositionZeroBlockEntity be))
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         if (be.isEmpty() && !held.isEmpty()) {
-            // The client predicts an attempted insertion; the common config and allowed-item policy are
-            // checked by the server, whose answer is authoritative for inventory changes.
-            if (level.isClientSide) return ItemInteractionResult.SUCCESS;
+            if (level.isClientSide) {
+                return PositionZeroBlockEntity.canInsertClient(held)
+                    ? ItemInteractionResult.SUCCESS
+                    : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            }
             if (PositionZeroBlockEntity.canInsert(held)) {
                 be.insertOne(held, player);
                 return ItemInteractionResult.SUCCESS;
@@ -118,9 +122,22 @@ public class PositionZeroBlock extends HorizontalDirectionalBlock implements IBE
 
     @Override
     public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof PositionZeroBlockEntity be)
+        // Creative destruction bypasses playerDestroy/loot generation, but stored display contents still
+        // need the same recovery behavior they had before this block used its normal loot path.
+        if (!level.isClientSide && player.isCreative()
+            && level.getBlockEntity(pos) instanceof PositionZeroBlockEntity be)
             be.dropStoredItem();
         return super.playerWillDestroy(level, pos, state, player);
+    }
+
+    @Override
+    protected List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
+        List<ItemStack> drops = new ArrayList<>(super.getDrops(state, builder));
+        if (builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY) instanceof PositionZeroBlockEntity be) {
+            ItemStack stored = be.getStored().copy();
+            if (!stored.isEmpty()) drops.add(stored);
+        }
+        return drops;
     }
 
     /**

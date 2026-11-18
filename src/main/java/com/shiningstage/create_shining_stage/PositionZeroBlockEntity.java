@@ -32,6 +32,17 @@ public class PositionZeroBlockEntity extends SmartBlockEntity {
         }
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (Config.POSITION_ZERO_ADDITIONAL_ITEMS.get().contains(id.toString())) return true;
+        return canInsertVanilla(stack, id);
+    }
+
+    /** Client prediction uses the server-synced custom allowlist instead of its local COMMON config. */
+    public static boolean canInsertClient(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return PositionZeroItemPolicy.allowsAdditionalItem(stack) || canInsertVanilla(stack, id);
+    }
+
+    private static boolean canInsertVanilla(ItemStack stack, ResourceLocation id) {
         return "minecraft".equals(id.getNamespace())
             && (stack.is(Tags.Items.MELEE_WEAPON_TOOLS) || stack.is(Tags.Items.RANGED_WEAPON_TOOLS));
     }

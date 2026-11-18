@@ -30,6 +30,9 @@ public class CreateShiningStage {
         modEventBus.addListener(ColdSparkMachineBlockEntity::registerCapabilities);
         modEventBus.addListener(TrussBlock::registerEncasing);
         modEventBus.addListener(TrussBlock::addValidBlocks);
+        modEventBus.addListener(PositionZeroItemPolicy::registerPayloads);
+        modEventBus.addListener(PositionZeroItemPolicy::onConfigLoading);
+        modEventBus.addListener(PositionZeroItemPolicy::onConfigReloading);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::gatherData);
         NeoForge.EVENT_BUS.addListener(SoundRelayHandler::onAtPosition);
@@ -38,6 +41,7 @@ public class CreateShiningStage {
         NeoForge.EVENT_BUS.addListener(StageRedstoneNetwork::onChunkLoad);
         NeoForge.EVENT_BUS.addListener(StageRedstoneNetwork::onChunkUnload);
         NeoForge.EVENT_BUS.addListener(StageRedstoneNetwork::onLevelTick);
+        NeoForge.EVENT_BUS.addListener(PositionZeroItemPolicy::onPlayerLoggedIn);
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
 
