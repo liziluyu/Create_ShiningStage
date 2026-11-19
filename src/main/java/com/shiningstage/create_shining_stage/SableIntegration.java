@@ -13,10 +13,12 @@ import dev.ryanhcode.sable.companion.SubLevelAccess;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import dev.ryanhcode.sable.sublevel.plot.PlotChunkHolder;
+import dev.ryanhcode.sable.sublevel.plot.LevelPlot;
 import dev.ryanhcode.sable.sublevel.storage.SubLevelRemovalReason;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.Vec3;
@@ -67,6 +69,13 @@ final class SableIntegration {
 
     static boolean isInPlotGrid(Level level, BlockPos position) {
         return Sable.HELPER.isInPlotGrid(level, position);
+    }
+
+    static void checkBlockLight(Level level, BlockPos position) {
+        SubLevelContainer container = SubLevelContainer.getContainer(level);
+        LevelPlot plot = container == null ? null : container.getPlot(new ChunkPos(position));
+        // Plot chunks have their own engine; the ordinary level's arrays cannot clear their light.
+        (plot == null ? level.getLightEngine() : plot.getLightEngine()).checkBlock(position);
     }
 
     static void trackExternalLights(Level level, BlockPos owner, Set<BlockPos> lights) {

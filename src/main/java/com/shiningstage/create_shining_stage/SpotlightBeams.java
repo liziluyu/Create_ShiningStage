@@ -27,6 +27,9 @@ public interface SpotlightBeams {
     /** Captured spotlights, in contraption-local space; empty if the contraption carries none. */
     List<Beam> createShiningStage$spotlightBeams();
 
+    /** Fill lights have no visible beam, but still need client lighting while mounted. */
+    List<Beam> createShiningStage$fillLightBeams();
+
     /** One spotlight of a contraption, in contraption-local space. */
     record Beam(BlockPos localPos, Vec3 direction, int storedRange) {
     }
@@ -37,6 +40,16 @@ public interface SpotlightBeams {
             BlockState state = info.state();
             if (state.getBlock() instanceof SpotlightBlock) {
                 beams.add(new Beam(info.pos(), SpotlightBlock.beamDirection(state), storedRange(info)));
+            }
+        }
+        return List.copyOf(beams);
+    }
+
+    static List<Beam> scanFillLights(Contraption contraption) {
+        List<Beam> beams = new ArrayList<>();
+        for (StructureBlockInfo info : contraption.getBlocks().values()) {
+            if (info.state().getBlock() instanceof FillLightBlock) {
+                beams.add(new Beam(info.pos(), FillLightBlock.direction(info.state()), 0));
             }
         }
         return List.copyOf(beams);

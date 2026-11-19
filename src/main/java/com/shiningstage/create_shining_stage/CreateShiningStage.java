@@ -33,6 +33,9 @@ public class CreateShiningStage {
         modEventBus.addListener(PositionZeroItemPolicy::registerPayloads);
         modEventBus.addListener(PositionZeroItemPolicy::onConfigLoading);
         modEventBus.addListener(PositionZeroItemPolicy::onConfigReloading);
+        modEventBus.addListener(StageLightingSettings::registerPayloads);
+        modEventBus.addListener(StageLightingSettings::onConfigLoading);
+        modEventBus.addListener(StageLightingSettings::onConfigReloading);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::gatherData);
         NeoForge.EVENT_BUS.addListener(SoundRelayHandler::onAtPosition);
@@ -41,7 +44,11 @@ public class CreateShiningStage {
         NeoForge.EVENT_BUS.addListener(StageRedstoneNetwork::onChunkLoad);
         NeoForge.EVENT_BUS.addListener(StageRedstoneNetwork::onChunkUnload);
         NeoForge.EVENT_BUS.addListener(StageRedstoneNetwork::onLevelTick);
+        NeoForge.EVENT_BUS.addListener(LegacyStageLightCleanup::onChunkLoad);
+        NeoForge.EVENT_BUS.addListener(LegacyStageLightCleanup::onChunkUnload);
+        NeoForge.EVENT_BUS.addListener(LegacyStageLightCleanup::onLevelTick);
         NeoForge.EVENT_BUS.addListener(PositionZeroItemPolicy::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(StageLightingSettings::onPlayerLoggedIn);
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
 

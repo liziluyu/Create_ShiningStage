@@ -34,16 +34,26 @@ public abstract class ContraptionMixin implements SpotlightBeams {
     @Unique
     private volatile List<SpotlightBeams.Beam> createShiningStage$spotlightBeams;
 
+    @Unique
+    private volatile List<SpotlightBeams.Beam> createShiningStage$fillLightBeams;
+
     @Inject(
         method = "readNBT(Lnet/minecraft/world/level/Level;Lnet/minecraft/nbt/CompoundTag;Z)V",
         at = @At("TAIL"))
     private void createShiningStage$captureSpotlights(Level world, CompoundTag nbt, boolean spawnData, CallbackInfo ci) {
         createShiningStage$spotlightBeams = SpotlightBeams.scan((Contraption) (Object) this);
+        createShiningStage$fillLightBeams = SpotlightBeams.scanFillLights((Contraption) (Object) this);
     }
 
     @Override
     public List<SpotlightBeams.Beam> createShiningStage$spotlightBeams() {
         List<SpotlightBeams.Beam> beams = createShiningStage$spotlightBeams;
+        return beams == null ? List.of() : beams;
+    }
+
+    @Override
+    public List<SpotlightBeams.Beam> createShiningStage$fillLightBeams() {
+        List<SpotlightBeams.Beam> beams = createShiningStage$fillLightBeams;
         return beams == null ? List.of() : beams;
     }
 }

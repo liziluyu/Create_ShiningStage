@@ -26,6 +26,14 @@ final class SableCompat {
         return LOADED && SableIntegration.isInPlotGrid(level, position);
     }
 
+    static void checkBlockLight(Level level, BlockPos position) {
+        if (LOADED) {
+            SableIntegration.checkBlockLight(level, position);
+        } else {
+            level.getLightEngine().checkBlock(position);
+        }
+    }
+
     static void trackExternalLights(Level level, BlockPos owner, Set<BlockPos> lights) {
         if (LOADED) {
             SableIntegration.trackExternalLights(level, owner, lights);

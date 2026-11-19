@@ -172,6 +172,47 @@ tasks.named('check').configure {
     dependsOn tasks.named('stageSignalSolverRegression')
 }
 
+// DataLayer is a plain nibble array; this does not bootstrap or launch Minecraft.
+sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
+sourceSets.test.runtimeClasspath += sourceSets.main.compileClasspath
+
+tasks.register('stageLightLayerRegression', JavaExec) {
+    group = 'verification'
+    description = 'Checks client light snapshots, packet replacement and concurrent section reads.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.shiningstage.create_shining_stage.StageLightLayerMergerRegression'
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('stageLightLayerRegression')
+}
+
+// Inspect compiled registration hooks without initializing Minecraft or starting a game.
+tasks.register('stageLightingHookRegression', JavaExec) {
+    group = 'verification'
+    description = 'Checks that client light registration covers early block entity tick exits.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.shiningstage.create_shining_stage.StageLightingHookRegression'
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('stageLightingHookRegression')
+}
+
+tasks.register('legacyLightCleanupRegression', JavaExec) {
+    group = 'verification'
+    description = 'Checks recorded light migration across unloads, restarts and cached-light repair.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.shiningstage.create_shining_stage.LegacyLightCleanupRegression'
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('legacyLightCleanupRegression')
+}
+
 // The regression is a dependency-free main class run by JavaExec above, not a JUnit test.
 tasks.named('test').configure {
     failOnNoDiscoveredTests = false

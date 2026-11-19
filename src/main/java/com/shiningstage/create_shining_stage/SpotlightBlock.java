@@ -166,7 +166,7 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
             * (isSideMounted(state) ? 1 : -1);
     }
 
-    /** Shared by the housing, beam, light placement and range value box. */
+    /** Shared by the housing, beam, client light sources and range value box. */
     public static Vec3 rotateVector(BlockState state, Vec3 vector) {
         Vec3 axis = rotationAxis(state);
         double angle = rotationRadians(state);
@@ -271,19 +271,14 @@ public class SpotlightBlock extends DirectionalBlock implements IBE<SpotlightBlo
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
-    /**
-     * Hands back the light blocks the beam left in the world. onRemove is the one hook that runs for
-     * every way a block can leave — a break, a replacement, a contraption assembly — and never for a
-     * chunk unload, which is what keeps this from writing to a chunk that is being saved. Deliberately
-     * not playerWillDestroy: a mounted spotlight's block entity stops ticking inside the contraption, so
-     * its lights have to go when it is assembled as well.
-     */
+    /** Cleans loaded legacy light blocks and saves unresolved cleanup before replacement or assembly. */
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
-        // A replacement by the same block keeps the block entity, and so keeps the lights with it.
+        // A state-only change keeps the block entity and its pending legacy cleanup records.
         if (!level.isClientSide && !state.is(newState.getBlock())
             && level.getBlockEntity(pos) instanceof SpotlightBlockEntity be) {
             be.removePlacedLights();
+            be.handOffLegacyLights();
         }
         super.onRemove(state, level, pos, newState, movedByPiston);
     }

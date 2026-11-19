@@ -4,8 +4,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollValueBehaviour;
@@ -15,16 +13,10 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 public class SpotlightBlockEntity extends SmartBlockEntity {
@@ -36,42 +28,15 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
     /** Initial beam length on placement. */
     public static final int DEFAULT_RANGE = 16;
 
-    /**
-     * How often, in ticks, the beam's end is re-derived. This is a poll rather than an event because a
-     * block anywhere along the beam truncates it, and only the blocks touching the spotlight report a
-     * neighbour change — the far end of a 32-block beam reports nothing at all.
-     *
-     * <p>The interval throttles the world edits the check can produce, not the check itself. One change
-     * costs one light-engine update plus a section rebuild on every client, and the beam's end moves as
-     * fast as anything crossing it: a hull drifting through the beam moves the cell every tick, so a
-     * check per tick would place and tear out a light twenty times a second, each flooding block light
-     * over a fifteen-block radius and then draining it again. Five ticks bounds that at four a second
-     * while keeping the light within a quarter second of the beam. Steady state costs nothing: the cell
-     * only has to move for the world to be touched at all.
-     */
+    /** Client light endpoints are refreshed at most every five ticks. */
     public static final int LIGHT_POLL_INTERVAL = 5;
-
-    /**
-     * Light level of the block left where the beam ends. Full brightness, and deliberately not scaled by
-     * the redstone signal: the signal changes far more often than the beam's geometry does — a
-     * flickering line would be one light update per step — and the block is there to mark where the
-     * beam lands, not to reproduce the beam's own dimming.
-     */
+    /** Brightness of the client-only light sources. */
     public static final int LIGHT_LEVEL = 15;
-
-    /** What is left where the beam ends. Only ever placed into air, so never waterlogged. */
-    private static final BlockState BEAM_LIGHT =
-        Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, LIGHT_LEVEL);
 
     private int laserColor = DEFAULT_COLOR;
     private ScrollValueBehaviour range;
-    /** Cells this spotlight has put {@link #BEAM_LIGHT} into and not yet taken back. */
+    /** Save-only migration records; this version never places light blocks. */
     private final Set<BlockPos> placedLights = new HashSet<>();
-    /**
-     * Ticks until the beam's end is looked at again. Starts at 0, so a freshly placed or loaded
-     * spotlight settles its light on its first tick rather than a quarter second later.
-     */
-    private int lightPoll;
 
     public SpotlightBlockEntity(BlockPos pos, BlockState blockState) {
         this(ModBlockEntityTypes.SPOTLIGHT.get(), pos, blockState);
@@ -108,204 +73,46 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
     }
 
     @Override
+    public void onLoad() {
+        super.onLoad();
+        // Loading does not imply ticking. Detach ownership now so unloading or moving the fixture
+        // cannot strand records in a block entity that the server will never tick again.
+        handOffLegacyLights();
+    }
+
+    @Override
+    public void invalidate() {
+        // Only transfer saved work here: no block writes while a chunk/ship is being torn down.
+        handOffLegacyLights();
+        super.invalidate();
+    }
+
+    @Override
     public void tick() {
         super.tick();
-        if (level == null || level.isClientSide) {
+        if (level == null || level.isClientSide || placedLights.isEmpty()) {
             return;
         }
-        if (--lightPoll <= 0) {
-            lightPoll = LIGHT_POLL_INTERVAL;
-            updateBeamLight();
-        }
+        handOffLegacyLights(); // fallback for custom assembly paths that do not invoke onLoad
     }
 
-    /**
-     * Re-derives where the beam ends and keeps a light block there: placed when the cell moves, taken
-     * back when the beam moves off it or goes dark, and left strictly alone otherwise — a spotlight
-     * whose beam is not moving costs no world writes at all, and so no light updates.
-     *
-     * <p>Two beams ending in the same cell converge rather than fight: both record it, and whichever
-     * leaves first takes the block with it, after which the other re-places it on its next poll.
-     */
-    private void updateBeamLight() {
-        BlockPos end;
-        if (level.getBestNeighborSignal(worldPosition) <= 0) {
-            end = null; // the beam is off, so nothing anywhere is lit by it
-        } else if (!beamPathLoaded()) {
-            return; // nothing can be decided from here; the light stays where the last poll put it
-        } else {
-            end = beamEndCell();
-        }
-
-        // Anything on the books that is no longer where the beam ends is taken back. A cell whose chunk
-        // is not loaded keeps its record instead, so it is retried on a later poll rather than left
-        // behind as an invisible light source.
-        placedLights.removeIf(pos -> !pos.equals(end) && removeBeamLight(pos));
-        // The one light nothing else can take back is the one a structure leaves *outside* itself: a
-        // ship's beam ends on the ground, in the world's own chunks, and when the ship goes away its
-        // block entity goes with the plot rather than through Block#onRemove, leaving that light in the
-        // world forever. A light the structure holds dies with the structure, so only this case needs
-        // watching. Asked of the recorded cells each poll rather than of the moment one is placed: a
-        // spotlight assembled with its beam already lit has its record from the world, and would
-        // otherwise never be watched.
-        SableCompat.trackExternalLights(level, worldPosition, placedLights);
-        if (end == null || !cellPresent(end)) {
-            return;
-        }
-        BlockState there = level.getBlockState(end);
-        if (there.is(Blocks.LIGHT)) {
-            // Take it on the books. This is normally the spotlight's own light, and taking it rather
-            // than refusing it is what makes the block survive a move: assembling a lit rig copies
-            // every block of the region into the structure's plot — the light included — while the
-            // removal of the old cell clears this record. Refusing an unrecorded light would then
-            // strand it: the poll would never adopt it, and nothing could ever take it back, so it
-            // would glow inside the hull forever even after the beam moved on or went dark.
-            //
-            // It also settles two beams ending in the same cell: both record it, and if one leaves and
-            // takes the block with it, the other re-places it on its next poll. A light of a different
-            // level is someone else's and is left exactly as it is.
-            if (there.equals(BEAM_LIGHT)) {
-                placedLights.add(end);
-            }
-            return;
-        }
-        if (!there.isAir()) {
-            return; // not ours to take — water, or a block a player has put there since
-        }
-        if (level.setBlock(end, BEAM_LIGHT, Block.UPDATE_ALL)) {
-            placedLights.add(end);
-        }
-    }
-
-    /**
-     * Whether every cell the beam crosses is safe to read.
-     *
-     * <p>{@code Level#getBlockState} does not only read: it asks the chunk source with
-     * {@code requireChunk = true}, which adds a ticket, blocks the calling thread until the chunk is
-     * there, and generates it if it is not. A raycast that reached past the world's loaded area would
-     * therefore mint terrain every {@link #LIGHT_POLL_INTERVAL} ticks. So the poll stands down while
-     * the beam points at chunks that are not present, and picks up again once they are.
-     *
-     * <p>In practice this almost never refuses — a chunk within beam range of a ticking block entity is
-     * present in every ordinary setup, which is why nothing here is load-bearing for correctness. It
-     * exists for the boundary case alone: a spotlight at the edge of the loaded area with a 32-block
-     * beam pointing outward. Note that vanilla's own {@code execute if loaded} is *not* the predicate
-     * for this — it asks whether a chunk is entity-ticking, which is narrower, so it reports chunks as
-     * absent that are present and perfectly readable.
-     *
-     * <p>A spotlight riding a structure checks only its projected world path here. Sable's clip maps
-     * that path into intersecting sub-levels itself; plot chunks outside a structure's loaded plot
-     * holders are treated as empty chunks by Sable and must not make the world-space path stand down.
-     */
-    private boolean beamPathLoaded() {
-        Vec3 normal = beamDirection();
-        Vec3 start = Vec3.atCenterOf(worldPosition).add(normal.scale(0.5));
-        Vec3 end = start.add(normal.scale(getRange()));
-        return pathLoaded(SableCompat.toWorldPosition(level, worldPosition, start),
-            SableCompat.toWorldPosition(level, worldPosition, end));
-    }
-
-    private boolean pathLoaded(Vec3 start, Vec3 end) {
-        // Traverse every crossed cell: whole-block sampling can skip cells on a diagonal.
-        return BlockGetter.traverseBlocks(start, end, this,
-            (spotlight, cell) -> spotlight.cellPresent(cell) ? null : Boolean.FALSE,
-            spotlight -> Boolean.TRUE);
-    }
-
-    /**
-     * Whether that cell's chunk is already there to be read.
-     *
-     * <p>{@code Level#isLoaded} resolves to {@code ChunkSource#hasChunk}, which asks for the chunk at
-     * {@code ChunkStatus.FULL} with {@code requireChunk = false}: no ticket is added and no generation
-     * is started, so the question costs nothing and cannot itself pull the world in. That is exactly
-     * the predicate the clip needs — present, or not — and it is what vanilla asks before reading a
-     * chunk it may not hold.
-     */
-    private boolean cellPresent(BlockPos cell) {
-        return level.isLoaded(cell);
-    }
-
-    /**
-     * The cell the beam ends in, or null when there is nothing to light: the beam is shut against its
-     * own face and so is shorter than a cell.
-     *
-     * <p>The raycast mirrors {@link SpotlightRenderer}'s — same clip, same bounds — so the block lands in
-     * the last cell the drawn frustum covers: the cell before the hit, or the cell at {@link #getRange()}
-     * when nothing is in the way. A hit cell stays in the coordinate space Sable reports for the block
-     * it hit; a miss endpoint is projected from plot space to world space for a spotlight on a ship.
-     * Only the cell is taken from the raycast, never the ship-aware distance the renderer needs for the
-     * beam's length.
-     */
-    @Nullable
-    private BlockPos beamEndCell() {
-        Vec3 normal = beamDirection();
-        Vec3 start = Vec3.atCenterOf(worldPosition).add(normal.scale(0.5));
-        Vec3 end = start.add(normal.scale(getRange()));
-        BlockHitResult hit = level.clip(SpotlightBlock.beamClipContext(worldPosition, start, end));
-        // beamClipContext explicitly excludes all light blocks, so one placed here never truncates the
-        // beam and the cell stays put on the next poll.
-        //
-        // The step back from the hit is the hit's own face normal, not `facing.getOpposite()`: the two
-        // agree while the beam stays in one space — an axis-aligned ray enters through the face it
-        // came from, so the normal is that direction — but a hit in another structure's chunks is
-        // reported in *that* space (Sable's `BlockGetter#clip` clips inside the hit structure's level
-        // and returns that result untranslated), and the two structures need not share an orientation.
-        // A rotation between them makes this spotlight's facing a direction that means nothing next to
-        // the hull it lit, so "one step back along our facing" lands beside the hit or inside the hull
-        // (where the air check then refuses the write and the beam lights nothing); the normal is the
-        // cell the beam came from by construction, in whichever space the hit lives.
-        BlockPos cell;
-        if (hit.getType() == HitResult.Type.MISS) {
-            Vec3 missCell = Vec3.atCenterOf(worldPosition).add(normal.scale(getRange()));
-            missCell = SableCompat.toWorldPosition(level, worldPosition, missCell);
-            cell = BlockPos.containing(missCell);
-        } else {
-            cell = hit.getBlockPos().relative(hit.getDirection());
-        }
-        return cell.equals(worldPosition) ? null : cell;
-    }
-
-    /**
-     * Takes back the light at that cell while it is still ours, reporting whether the record can be
-     * dropped.
-     *
-     * <p>A cell whose chunk is not present cannot be read, and the answer then depends on which space
-     * it is in. A world cell is a real light in a real chunk that has merely been unloaded, so the
-     * record is kept and retried on a later poll. A <em>plot</em> cell is not: a light a structure holds
-     * lives and dies with the structure's plot, so a plot cell we cannot reach belongs to a structure
-     * that is no longer here — most often because the block was moved back into the world, which copies
-     * the light out of the plot and leaves this record naming where it used to be. Keeping it would mean
-     * a name that can never be resolved and never be cleared.
-     */
-    private boolean removeBeamLight(BlockPos pos) {
-        if (!cellPresent(pos)) {
-            return SableCompat.isInPlotGrid(level, pos);
-        }
-        if (level.getBlockState(pos).is(Blocks.LIGHT)) {
-            level.removeBlock(pos, false);
-        }
-        return true;
-    }
-
-    /**
-     * Takes back every light this spotlight placed. Called from {@link SpotlightBlock#onRemove} — the
-     * hook that runs for a break, a replacement and a structure assembly alike, and never for a chunk
-     * unload, where writing to the level would be a chunk save in flight.
-     */
+    /** Schedule recorded legacy sources and their cached-light footprint for safe cleanup. */
     public void removePlacedLights() {
-        if (level == null) {
-            return;
+        handOffLegacyLights();
+    }
+
+    /** Preserve unresolved migration work after this fixture is destroyed or assembled. */
+    void handOffLegacyLights() {
+        if (level instanceof ServerLevel serverLevel && !placedLights.isEmpty()) {
+            LegacyStageLightCleanup.accept(serverLevel, placedLights);
+            placedLights.clear();
+            setChanged();
         }
-        // The "chunk not loaded" answer is discarded here: this block entity is going away, so a record
-        // kept for a retry would never be read again.
-        placedLights.forEach(this::removeBeamLight);
-        placedLights.clear();
     }
 
     /**
-     * Asks for {@link #removePlacedLights} to run once the server finishes what it is doing, rather than
-     * inside it. Sable's cleanup observer is called from the middle of a structure's removal, and the task
-     * queue puts these writes after that teardown has unwound instead of re-entering it.
+     * Transfers any remaining records after Sable teardown. Actual world edits are performed by the
+     * level migration queue, never inside the structure removal callback.
      */
     public void removePlacedLightsLater() {
         if (level == null || placedLights.isEmpty()) {
@@ -315,7 +122,7 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
         if (server == null) {
             return;
         }
-        server.execute(this::removePlacedLights);
+        server.execute(this::handOffLegacyLights);
     }
 
     public int getLaserColor() {
@@ -331,8 +138,7 @@ public class SpotlightBlockEntity extends SmartBlockEntity {
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.write(tag, registries, clientPacket);
         tag.putInt("LaserColor", laserColor);
-        // Save-only: the client never places a light block and has no say in where the server put one,
-        // and a synced copy could only disagree with the world it is looking at.
+        // Legacy cleanup ownership is server-only; virtual client lights are never persisted here.
         if (!clientPacket) {
             long[] cells = new long[placedLights.size()];
             int i = 0;

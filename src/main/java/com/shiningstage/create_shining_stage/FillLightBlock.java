@@ -77,9 +77,13 @@ public class FillLightBlock extends Block implements IBE<FillLightBlockEntity>, 
         return new Vec3(Math.sin(angle), 0, -Math.cos(angle));
     }
 
+    /** Retires legacy light blocks without losing unloaded cleanup records. */
     @Override protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState next, boolean moved) {
         if (!level.isClientSide && !state.is(next.getBlock())
-            && level.getBlockEntity(pos) instanceof FillLightBlockEntity be) be.removePlacedLights();
+            && level.getBlockEntity(pos) instanceof FillLightBlockEntity be) {
+            be.removePlacedLights();
+            be.handOffLegacyLights();
+        }
         super.onRemove(state, level, pos, next, moved);
     }
 

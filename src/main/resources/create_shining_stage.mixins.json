@@ -8,6 +8,9 @@
     "NbtUtilsMixin"
   ],
   "client": [
+    "ClientBlockLightEngineMixin",
+    "ClientLightEngineMixin",
+    "ClientSpotlightBlockEntityMixin",
     "EntityCullingMixin",
     "ContraptionMixin"
   ],
