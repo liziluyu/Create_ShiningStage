@@ -1,0 +1,38 @@
+package com.shiningstage.create_shining_stage;
+
+import java.util.function.Supplier;
+
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraftforge.registries.DeferredRegister;
+
+public class ModBlockEntityTypes {
+    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
+        DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, CreateShiningStage.MOD_ID);
+
+    public static final Supplier<BlockEntityType<SpotlightBlockEntity>> SPOTLIGHT =
+        BLOCK_ENTITIES.register("spotlight",
+            () -> BlockEntityType.Builder.of(SpotlightBlockEntity::new, ModBlocks.SPOTLIGHT.get()).build(null));
+
+    public static final Supplier<BlockEntityType<FillLightBlockEntity>> FILL_LIGHT =
+        BLOCK_ENTITIES.register("fill_light",
+            () -> BlockEntityType.Builder.of(FillLightBlockEntity::new, ModBlocks.FILL_LIGHT.get()).build(null));
+
+    public static final Supplier<BlockEntityType<MicrophoneBlockEntity>> MICROPHONE =
+        BLOCK_ENTITIES.register("microphone",
+            () -> BlockEntityType.Builder.of(MicrophoneBlockEntity::new, ModBlocks.MICROPHONE.get()).build(null));
+
+    public static final Supplier<BlockEntityType<SpeakerBlockEntity>> SPEAKER =
+        BLOCK_ENTITIES.register("speaker",
+            () -> BlockEntityType.Builder.of(SpeakerBlockEntity::new, ModBlocks.SPEAKER.get()).build(null));
+
+    public static final Supplier<BlockEntityType<ColdSparkMachineBlockEntity>> COLD_SPARK_MACHINE =
+        BLOCK_ENTITIES.register("cold_spark_machine",
+            () -> BlockEntityType.Builder
+                .of(ColdSparkMachineBlockEntity::new, ModBlocks.COLD_SPARK_MACHINE.get())
+                .build(null));
+
+    public static final Supplier<BlockEntityType<PositionZeroBlockEntity>> POSITION_ZERO =
+        BLOCK_ENTITIES.register("position_zero",
+            () -> BlockEntityType.Builder.of(PositionZeroBlockEntity::new, ModBlocks.POSITION_ZERO.get()).build(null));
+}

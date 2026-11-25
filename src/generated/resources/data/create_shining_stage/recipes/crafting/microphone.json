@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "tag": "forge:gems/amethyst"
+    },
+    "B": {
+      "tag": "forge:plates/brass"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    },
+    "S": {
+      "item": "create:sturdy_sheet"
+    }
+  },
+  "pattern": [
+    " A ",
+    "SBS",
+    " E "
+  ],
+  "result": {
+    "count": 1,
+    "item": "create_shining_stage:microphone"
+  }
+}

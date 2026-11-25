@@ -1,0 +1,11 @@
+{
+  "blend":{"func":"add","srcrgb":"srcalpha","dstrgb":"one","srcalpha":"one","dstalpha":"one"},
+  "vertex":"create_shining_stage:cold_spark",
+  "fragment":"create_shining_stage:cold_spark",
+  "attributes":["Position","UV0","Color"],
+  "samplers":[{"name":"Sampler0"}],
+  "uniforms":[
+    {"name":"ModelViewMat","type":"matrix4x4","count":16,"values":[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]},
+    {"name":"ProjMat","type":"matrix4x4","count":16,"values":[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]}
+  ]
+}

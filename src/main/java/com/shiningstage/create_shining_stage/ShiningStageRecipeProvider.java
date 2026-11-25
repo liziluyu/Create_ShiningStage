@@ -1,0 +1,216 @@
+package com.shiningstage.create_shining_stage;
+
+
+import com.simibubi.create.AllBlocks;
+import com.simibubi.create.AllItems;
+import com.simibubi.create.api.data.recipe.MechanicalCraftingRecipeBuilder;
+
+import net.minecraft.data.PackOutput;
+import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.FinishedRecipe;
+import java.util.function.Consumer;
+import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.data.recipes.ShapedRecipeBuilder;
+import net.minecraft.data.recipes.ShapelessRecipeBuilder;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraftforge.common.Tags;
+
+/**
+ * Recipes for the whole stage set. The hardware items are plated in Create's sturdy sheet: the set
+ * is stage equipment, and the sheet keeps the one recipe-shaped tie to Create's progression
+ * (obsidian dust, lava, two pressings) instead of competing with its own material ladder. Everything
+ * else is the part that particular item is: glass for the lens, a note block for the speaker,
+ * amethyst for the microphone capsule, andesite alloy for the framing. Two items are not hardware:
+ * the floor marking is paper tape, and the fuel grain is a cardboard tube of metal turnings.
+ *
+ * <p>Runs under {@code runData}; the output lands in {@code src/generated/resources}. Datagen rather
+ * than hand-written JSON because every ingredient is then a compile-checked Create/vanilla constant,
+ * and because {@link MechanicalCraftingRecipeBuilder} is the only sane way to author the spotlight's
+ * mechanical crafting pattern.
+ */
+public class ShiningStageRecipeProvider extends RecipeProvider {
+    /**
+     * Create's own brass sheet tag ({@code forge:plates/brass}), the convention its electron tube recipe
+     * uses for iron. Create declares the plate tags itself.
+     */
+    private static final TagKey<Item> BRASS_PLATES = commonItemTag("plates/brass");
+
+    /**
+     * The metal filings the fuel burns, taken by tag so any mod's copper or zinc nugget does:
+     * {@code forge:nuggets/*} is what those items declare, and Create's own nuggets are only the two
+     * members it ships. {@code Tags.Items} does not define these two specific metal tags, so the
+     * {@code forge:nuggets} plus gold and iron — so they are spelled out here like the brass sheet. The
+     * cardboard stays Create's item on purpose: no other mod's cardboard is the plate this tube is
+     * wound from.
+     */
+    private static final TagKey<Item> COPPER_NUGGETS = commonItemTag("nuggets/copper");
+    private static final TagKey<Item> ZINC_NUGGETS = commonItemTag("nuggets/zinc");
+
+    /** A {@code forge:}-namespaced conventional tag; {@code Tags.Items} carries only some of them. */
+    private static TagKey<Item> commonItemTag(String path) {
+        return ItemTags.create(new ResourceLocation("forge", path));
+    }
+
+    public ShiningStageRecipeProvider(PackOutput output) {
+        super(output);
+    }
+
+    @Override
+    protected void buildRecipes(Consumer<FinishedRecipe> output) {
+        spotlight(output);
+        fillLight(output);
+        tripod(output);
+        pole(output);
+        microphone(output);
+        speaker(output);
+        truss(output);
+        positionZero(output);
+        coldSparkMachine(output);
+        coldSparkFuel(output);
+    }
+
+    /**
+     * A sheet-metal housing around the lens, a brass casing for the body and two electron tubes for the
+     * redstone-side control. Mechanical crafting (3x3 crafters) rather than a crafting table: the set's
+     * flagship is the one item worth the Create-specific gate, and it keeps the pattern readable.
+     */
+    private void spotlight(Consumer<FinishedRecipe> output) {
+        MechanicalCraftingRecipeBuilder.shapedRecipe(ModBlocks.SPOTLIGHT_ITEM.get())
+            .key('S', AllItems.STURDY_SHEET)
+            .key('G', Items.GLASS)
+            .key('T', AllItems.ELECTRON_TUBE)
+            .key('C', AllBlocks.BRASS_CASING)
+            .patternLine(" S ")
+            .patternLine("SGS")
+            .patternLine("TCT")
+            .build(output, id("mechanical_crafting/spotlight"));
+    }
+
+    /** Glass and electron tubes make the lamp face; sturdy sheets and andesite alloy form its support. */
+    private void fillLight(Consumer<FinishedRecipe> output) {
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModBlocks.FILL_LIGHT_ITEM.get())
+            .define('S', AllItems.STURDY_SHEET)
+            .define('G', Items.GLASS)
+            .define('T', AllItems.ELECTRON_TUBE)
+            .define('A', AllItems.ANDESITE_ALLOY)
+            .pattern("SGS")
+            .pattern("STS")
+            .pattern(" A ")
+            .unlockedBy("has_sturdy_sheet", has(AllItems.STURDY_SHEET))
+            .save(output, id("crafting/fill_light"));
+    }
+
+    /** Three sheets for the legs and plate, andesite alloy for the joint. Two per craft: a spotlight stands on a stack. */
+    private void tripod(Consumer<FinishedRecipe> output) {
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModBlocks.TRIPOD_ITEM.get(), 2)
+            .define('S', AllItems.STURDY_SHEET)
+            .define('A', AllItems.ANDESITE_ALLOY)
+            .pattern(" S ")
+            .pattern("SAS")
+            .unlockedBy("has_sturdy_sheet", has(AllItems.STURDY_SHEET))
+            .save(output, id("crafting/tripod"));
+    }
+
+    /** Vertical tripod rods are made from two sturdy-sheet ends and an andesite-alloy core. */
+    private void pole(Consumer<FinishedRecipe> output) {
+        ShapedRecipeBuilder.shaped(RecipeCategory.BUILDING_BLOCKS, ModBlocks.POLE_ITEM.get(), 12)
+            .define('S', AllItems.STURDY_SHEET)
+            .define('A', AllItems.ANDESITE_ALLOY)
+            .pattern("S")
+            .pattern("A")
+            .pattern("S")
+            .unlockedBy("has_sturdy_sheet", has(AllItems.STURDY_SHEET))
+            .save(output, id("crafting/pole"));
+    }
+
+    /**
+     * Amethyst capsule on a brass boom, tube preamp in a sheet-metal body. No stand of its own: the
+     * microphone only places on a tripod (MicrophoneBlock.getStateForPlacement), so the tripod is the
+     * stand's recipe.
+     */
+    private void microphone(Consumer<FinishedRecipe> output) {
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModBlocks.MICROPHONE_ITEM.get())
+            .define('A', Tags.Items.GEMS_AMETHYST)
+            .define('S', AllItems.STURDY_SHEET)
+            .define('B', BRASS_PLATES)
+            .define('E', AllItems.ELECTRON_TUBE)
+            .pattern(" A ")
+            .pattern("SBS")
+            .pattern(" E ")
+            .unlockedBy("has_sturdy_sheet", has(AllItems.STURDY_SHEET))
+            .unlockedBy("has_amethyst", has(Tags.Items.GEMS_AMETHYST))
+            .save(output, id("crafting/microphone"));
+    }
+
+    /** Note block driver in a sheet-metal cabinet, tube amp on top. */
+    private void speaker(Consumer<FinishedRecipe> output) {
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModBlocks.SPEAKER_ITEM.get())
+            .define('S', AllItems.STURDY_SHEET)
+            .define('E', AllItems.ELECTRON_TUBE)
+            .define('N', Items.NOTE_BLOCK)
+            .pattern("SES")
+            .pattern(" N ")
+            .unlockedBy("has_sturdy_sheet", has(AllItems.STURDY_SHEET))
+            .unlockedBy("has_note_block", has(Items.NOTE_BLOCK))
+            .save(output, id("crafting/speaker"));
+    }
+
+    /** Framing gets built in walls, so it comes four at a time; andesite alloy is the lattice, sheets the plates. */
+    private void truss(Consumer<FinishedRecipe> output) {
+        ShapedRecipeBuilder.shaped(RecipeCategory.BUILDING_BLOCKS, ModBlocks.TRUSS_ITEM.get(), 4)
+            .define('S', AllItems.STURDY_SHEET)
+            .define('A', AllItems.ANDESITE_ALLOY)
+            .pattern("SAS")
+            .unlockedBy("has_sturdy_sheet", has(AllItems.STURDY_SHEET))
+            .save(output, id("crafting/truss"));
+    }
+
+    /** Paper tape with a painted stripe: the marking is a decal, not a structure, so it costs no sheeting. */
+    private void positionZero(Consumer<FinishedRecipe> output) {
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.BUILDING_BLOCKS, ModBlocks.POSITION_ZERO_ITEM.get(), 2)
+            .requires(Items.PAPER)
+            .requires(Items.PINK_DYE)
+            .unlockedBy("has_paper", has(Items.PAPER))
+            .save(output, id("crafting/position_zero"));
+    }
+
+    /**
+     * Sheet-metal cabinet around an electron tube ignition circuit, andesite alloy for the nozzle ring.
+     * Mechanical crafting like the spotlight: the two stage machines are the set's flagship items, and
+     * the 3x3 pattern is what keeps the cabinet readable.
+     */
+    private void coldSparkMachine(Consumer<FinishedRecipe> output) {
+        MechanicalCraftingRecipeBuilder.shapedRecipe(ModBlocks.COLD_SPARK_MACHINE_ITEM.get())
+            .key('S', AllItems.STURDY_SHEET)
+            .key('T', AllItems.ELECTRON_TUBE)
+            .key('A', AllItems.ANDESITE_ALLOY)
+            .patternLine(" A ")
+            .patternLine("SAS")
+            .patternLine("STS")
+            .build(output, id("mechanical_crafting/cold_spark_machine"));
+    }
+
+    /**
+     * A cardboard tube packed with metal filings: gunpowder carries the charge, and the zinc and
+     * copper turnings are what burn as white sparks instead of flame. The filings are tagged rather
+     * than named, so a copper or zinc nugget from any mod is accepted.
+     */
+    private void coldSparkFuel(Consumer<FinishedRecipe> output) {
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.COLD_SPARK_FUEL.get(), 4)
+            .requires(AllItems.CARDBOARD)
+            .requires(ZINC_NUGGETS)
+            .requires(COPPER_NUGGETS)
+            .requires(Items.GUNPOWDER)
+            .unlockedBy("has_cardboard", has(AllItems.CARDBOARD))
+            .unlockedBy("has_gunpowder", has(Items.GUNPOWDER))
+            .save(output, id("crafting/cold_spark_fuel"));
+    }
+
+    private static ResourceLocation id(String path) {
+        return new ResourceLocation(CreateShiningStage.MOD_ID, path);
+    }
+}
