@@ -9,8 +9,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.shiningstage.create_shining_stage.client.beam.BeamShaders;
 import com.shiningstage.create_shining_stage.client.beam.ColdSparkRenderTypes;
 
-import net.minecraft.client.Camera;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -151,10 +149,6 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
     private final Matrix4f inversePose = new Matrix4f();
     private final Vector3f localRight = new Vector3f();
     private final Vector3f localUp = new Vector3f();
-    // World-space camera axes, kept alongside their local-space twins: the launch direction is
-    // projected onto these to find each sprite's roll.
-    private final Vector3f worldRight = new Vector3f();
-    private final Vector3f worldUp = new Vector3f();
     private final Vector3f sparkVelocity = new Vector3f();
 
     public ColdSparkMachineRenderer(BlockEntityRendererProvider.Context context) {
@@ -193,17 +187,14 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
             return;
         }
         if (BeamShaders.coldSpark() == null) return;
-        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         Matrix4f pose = ms.last().pose();
-        // The billboard basis has to live in the same space the quads are emitted in, which is the
-        // caller's pose — block-local in the world, contraption-local inside a contraption. Inverting
-        // the pose maps the camera's world-space right/up into it, so one inversion per machine covers
-        // every spark, and the pose's own rotation and scale come out right without being undone.
+        // BER poses already include the camera view rotation: GameRenderer rotates the level pose,
+        // then LevelRenderer translates it by blockPos-cameraPos before dispatching this renderer.
+        // Thus camera-right/up in vertex output space are simply +X/+Y. Inverting the full pose maps
+        // those axes back into the caller's local space, including a contraption transform.
         inversePose.set(pose).invert();
-        worldRight.set(camera.getLeftVector()).negate();
-        worldUp.set(camera.getUpVector());
-        localRight.set(worldRight);
-        localUp.set(worldUp);
+        localRight.set(1f, 0f, 0f);
+        localUp.set(0f, 1f, 0f);
         inversePose.transformDirection(localRight);
         inversePose.transformDirection(localUp);
 
@@ -260,13 +251,12 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
             // Roll the sprite so its top edge points the way this spark was fired. The launch
             // direction is fixed at birth, so a spark keeps the orientation it left the nozzle at
             // instead of tumbling as gravity turns its velocity. The pose carries that direction into
-            // the world — which is what makes it come out right on a contraption — and there it is
-            // projected onto the camera's screen axes. Normalising the projection rather than taking
-            // its angle keeps this to a handful of multiplies per spark, with no trigonometry.
+            // the same camera space the vertices use; its x/y components give the on-screen direction.
+            // Normalising the projection rather than taking its angle avoids per-spark trigonometry.
             sparkVelocity.set(dirX * lateral, speed, dirZ * lateral);
             pose.transformDirection(sparkVelocity);
-            float screenX = sparkVelocity.dot(worldRight);
-            float screenY = sparkVelocity.dot(worldUp);
+            float screenX = sparkVelocity.x;
+            float screenY = sparkVelocity.y;
             float screenLength = Mth.sqrt(screenX * screenX + screenY * screenY);
             // Fired straight at or away from the camera there is no on-screen direction to point
             // along; the sprite stays upright rather than rolling on noise.
@@ -372,7 +362,7 @@ public class ColdSparkMachineRenderer implements BlockEntityRenderer<ColdSparkMa
 
     private static void vertex(VertexConsumer vc, Matrix4f pose, float x, float y, float z,
                                float u, float v, float r, float g, float b, float alpha) {
-        vc.vertex(pose, x, y, z).color(r, g, b, alpha).uv(u, v).endVertex();
+        vc.vertex(pose, x, y, z).uv(u, v).color(r, g, b, alpha).endVertex();
     }
 
     /** One byte of a hash as a 0..1 fraction. */
