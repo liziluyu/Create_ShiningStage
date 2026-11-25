@@ -35,20 +35,28 @@ public final class CreateShiningStageClient {
             if (event.phase == TickEvent.Phase.END) {
                 SpeakerBindingOutliner.tick();
                 ClientStageLighting.tick();
+                SpotlightRenderer.tickOcclusionCache();
             }
         }
         @SubscribeEvent public static void chunkLoad(ChunkEvent.Load event) {
             if (event.getLevel() instanceof ClientLevel level) ClientStageLighting.chunkChanged(level, event.getChunk().getPos());
         }
         @SubscribeEvent public static void chunkUnload(ChunkEvent.Unload event) {
-            if (event.getLevel() instanceof ClientLevel level) ClientStageLighting.chunkChanged(level, event.getChunk().getPos());
+            if (event.getLevel() instanceof ClientLevel level) {
+                ClientStageLighting.chunkChanged(level, event.getChunk().getPos());
+                SpotlightRenderer.chunkUnloaded(level, event.getChunk().getPos());
+            }
         }
         @SubscribeEvent public static void levelUnload(LevelEvent.Unload event) {
-            if (event.getLevel() instanceof ClientLevel level) ClientStageLighting.unload(level);
+            if (event.getLevel() instanceof ClientLevel level) {
+                ClientStageLighting.unload(level);
+                SpotlightRenderer.clearOcclusionCache();
+            }
         }
         @SubscribeEvent public static void logout(net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
             StageLightingSettings.resetClient();
             PositionZeroItemPolicy.resetClient();
+            SpotlightRenderer.clearOcclusionCache();
         }
     }
 }
